@@ -1,0 +1,102 @@
+
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{indentfirst}
+\usepackage{listings}
+\usepackage{color}
+\definecolor{lightgray}{rgb}{.9,.9,.9}
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+\newcommand{\cit}[1]{{\fontfamily{qcr}\selectfont{\textit{\textbf{\textcolor{darkgray}{#1}}}}}}
+
+% Taken from Lena Herrmann at 
+% http://lenaherrmann.net/2010/05/20/javascript-syntax-highlighting-in-the-latex-listings-package
+\lstdefinelanguage{JavaScript}{
+  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  ndkeywordstyle=\color{darkgray}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{purple}\ttfamily,
+  stringstyle=\color{red}\ttfamily,
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstset{
+   language=JavaScript,
+   backgroundcolor=\color{lightgray},
+   extendedchars=true,
+   basicstyle=\footnotesize\ttfamily,
+   showstringspaces=false,
+   showspaces=false,
+   numbers=left,
+   numberstyle=\footnotesize,
+   numbersep=9pt,
+   tabsize=2,
+   breaklines=true,
+   showtabs=false,
+   captionpos=b
+}
+
+\title{Async Tree Pattern}
+\author{Guseyn Ismayylov}
+\date{July 2018}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+\textbf{Async Tree Pattern} is a declarative design pattern, the main purpose of which is to transform procedural code into the object-oriented(declarative) code in the asynchronous environment (in this work implementation of this pattern will be shown for Node.js).
+
+Also \textbf{Async Tree} can be considered as a data structure.
+\section{Declarative vs Imperative}
+
+The conception of the \textbf{Async Tree} was created with assumption that declarative programming is much better than imperative style of writing code for big programs and systems. Declarative code is more readable, extensible and maintainable in general.
+
+You may agree or disagree with this statement. It's only opinion of the author of this work.
+
+Here it will be shown the difference between these two approaches by small example. Let's consider the following imperative code:  
+
+\begin{lstlisting}
+// Imperative
+user = getUserFromDb(userId);
+account = user.createNewAccount(accountInfo);
+user.saveAccount(account);
+\end{lstlisting}
+
+It can be written in the declarative style:
+
+\begin{lstlisting}
+// Declarative
+SavedAccount(
+  CreatedAccount(
+    UserFromDb(userId), accountInfo
+  )
+).call();
+\end{lstlisting}
+
+The example is quite small to demonstrate why declarative programming is preferable. Nevertheless, you can see that declarative code always shows the result of program execution and what it requires to get this result. For readability it's more important to be able to see what result you get, not how exactly you get it.
+
+\section{Why Node.js}
+
+As it's been said the implementation of the \textbf{Async Tree} will be described for Node.js. The choice is very simple because Node.js is the most popular and stable asynchronous  event driven runtime and it performs well. But as you will see, \textbf{Async Tree} can be applied not only in the asynchronous environment.
+
+\section{Async Tree and Async Object}
+
+\textbf{Async Tree} can be defined as a composition of objects and primitives. Each of objects in this composition that represents some other object or primitive type of data is called \textbf{Async Object}. 
+
+For example, in the previous example \cit{SavedAccount} and \cit{CreatedAccount} represent \cit{Account}, \cit{UserFromDb} represents \cit{User}.
+
+\textbf{Async Object} is an object that represents(computes) some other but similar(in terms of logic) object. So, for example, \cit{SavedAccount}, \cit{UpdatedAccount}, \cit{DeletedAccount} are \textit{async objects} because they represent \cit{Account}, which is simple object. \cit{UserFromDb}, \cit{UserFromRequest} are also \textit{async objects}, they represent simple object \cit{User}.
+
+Every \textbf{Async Object} can be constructed by other \textit{async objects}, \textit{simple objects} and \textit{primitives}. For example, \cit{SavedAccount} can be created by \cit{UpdatedAccount}, \cit{CreatedAccount} or any other \cit{Async Object} that represents \cit{Account}. Obviously, it can be created by \cit{Account} itself.
+
+That's the main idea of the \textbf{Async Tree Pattern}: to provide flexible way to create composition of objects via their representations.
+
+\end{document}
