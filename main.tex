@@ -1,4 +1,3 @@
-
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{indentfirst}
@@ -98,5 +97,38 @@ For example, in the previous example \cit{SavedAccount} and \cit{CreatedAccount}
 Every \textbf{Async Object} can be constructed by other \textit{async objects}, \textit{simple objects} and \textit{primitives}. For example, \cit{SavedAccount} can be created by \cit{UpdatedAccount}, \cit{CreatedAccount} or any other \cit{Async Object} that represents \cit{Account}. Obviously, it can be created by \cit{Account} itself.
 
 That's the main idea of the \textbf{Async Tree Pattern}: to provide flexible way to create composition of objects via their representations.
+
+\section{Asynchronous environment and callback hell}
+
+\section{Features of the Async Object}
+
+1) Replaceable and flexible: can be constructed by async objects and objects that they represent + primitives.
+
+2) has cache
+
+3) is used instead of callbacks
+
+4) method call
+
+5) fail or success, fail fast and continue after fail
+
+
+\section{Events}
+
+\section{Cache mechanism}
+
+\section{Implementation of the Async Tree}
+
+1) AsyncObject
+
+2) AsyncTree
+
+3) TreeNode, SimpleTreeNode, AsyncTreeNode, NotDefinedAsyncTreeNode.js
+
+4) Event
+
+5) As
+
+6) NullError
 
 \end{document}
