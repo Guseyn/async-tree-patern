@@ -98,9 +98,47 @@ Every \textbf{Async Object} can be constructed by other \textit{async objects}, 
 
 That's the main idea of the \textbf{Async Tree Pattern}: to provide flexible way to create composition of objects via their representations.
 
-\section{Asynchronous environment and callback hell}
+\section{Asynchronous environment and \textit{callback hell}}
+
+If you're familiar with Node.js and how it works, you might know about \textit{callback hell} hell problem. Callbacks is the main feature and problem in Node.js. Although it's a beautiful abstraction, it decreases readability of a program while it grows up.
+
+Actually, \textit{callback hell} is one of reasons why \textbf{Async Tree Pattern} was created. There are relatively new conceptions in JavaScript like Promises and async/await. But in my opinion, these abstractions are not suitable for object-oriented style. Simply because they don't provide the main feature of OOP: encapsulation. 
+It's not possible to create a composition of objects and write declarative code with these abstractions.
+
+Node.js is a set of modules with static asynchronous methods. And this is main problem, static methods are not actually attached to any objects. They exists in namespaces such as fs(Node.js module for file system), http, stream, buffer and so on.
+
+Static methods with callbacks don't allow to use results of their execution for other operations in the explicit way. The more asynchronous calls in code, the harder to control flow of data there.
+
+Let's say we want to write content to a file that has been read from another one. And all these operations are asynchronous, of course. So, instead of writing something like this:
+
+\begin{lstlisting}
+fs.readFile('./../file1.txt', 'utf8', (err, result) => {
+  if (err != null) {
+    throw err;
+  }
+ 
+  fs.writeFile('/../file2.txt', result, (err) => {
+    if (err != null) {
+      throw err;
+    }
+  });
+});
+\end{lstlisting}
+
+we can design our code in the following style:
+
+\begin{lstlisting}
+new WrittenFile(
+  './../file2.txt',
+  new ReadContentFromFile('./../file1.txt', 'utf8')
+).call();
+\end{lstlisting}
+
+As you can see, we use \textit{async objects} instead of \textit{async calls} and their representations as results of operations they correspond to. So, \cit{ReadContentFromFile} represents \cit{string} - content from a file, which is result of \textit{async call} \cit{fs.readFile}. And \cit{WrittenFile} represents a file that has been written with some content. Although \cit{fs.WriteFile} does not return anything, we can use \cit{WrittenFile} as file for other operations if it's needed.
 
 \section{Features of the Async Object}
+
+For implementation of the \textbf{Async Tree Pattern} 
 
 1) Replaceable and flexible: can be constructed by async objects and objects that they represent + primitives.
 
