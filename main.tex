@@ -100,12 +100,12 @@ That's the main idea of the \textbf{Async Tree Pattern}: to provide flexible way
 
 \section{Asynchronous environment and \textit{callback hell}}
 
-If you're familiar with Node.js and how it works, you might know about \textit{callback hell} hell problem. Callbacks is the main feature and problem in Node.js. Although it's a beautiful abstraction, it decreases readability of a program while it grows up.
+If you're familiar with Node.js and how it works, you might know about \textit{callback hell} problem. Callbacks is the main feature and problem in Node.js. Although it's a beautiful abstraction, it decreases readability of a program while it grows up.
 
 Actually, \textit{callback hell} is one of reasons why \textbf{Async Tree Pattern} was created. There are relatively new conceptions in JavaScript like Promises and async/await. But in my opinion, these abstractions are not suitable for object-oriented style. Simply because they don't provide the main feature of OOP: encapsulation. 
 It's not possible to create a composition of objects and write declarative code with these abstractions.
 
-Node.js is a set of modules with static asynchronous methods. And this is main problem, static methods are not actually attached to any objects. They exists in namespaces such as fs(Node.js module for file system), http, stream, buffer and so on.
+Node.js is a set of modules with static asynchronous methods. And this is main problem - static methods are not actually attached to any objects. They just exists in namespaces such as fs(Node.js module for file system), http, stream, buffer and so on.
 
 Static methods with callbacks don't allow to use results of their execution for other operations in the explicit way. The more asynchronous calls in code, the harder to control flow of data there.
 
@@ -136,24 +136,153 @@ new WrittenFile(
 
 As you can see, we use \textit{async objects} instead of \textit{async calls} and their representations as results of operations they correspond to. So, \cit{ReadContentFromFile} represents \cit{string} - content from a file, which is result of \textit{async call} \cit{fs.readFile}. And \cit{WrittenFile} represents a file that has been written with some content. Although \cit{fs.WriteFile} does not return anything, we can use \cit{WrittenFile} as file for other operations if it's needed.
 
-\section{Features of the Async Object}
+\section{Features of the Async Tree Pattern}
 
-For implementation of the \textbf{Async Tree Pattern} 
+\subsection{Flexibility}
 
-1) Replaceable and flexible: can be constructed by async objects and objects that they represent + primitives.
+The main question needs to be answered for turning asynchronous code into OOP code is \textit{"What is the main point of doing async call?"}
 
-2) has cache
+Well, it's simple: receive a result from an I/O operation or just handle an error in case if something fails. That means that we can represent an I/O call as a result that can be received in the future, and when it's ready it can be used as argument for another async call.
 
-3) is used instead of callbacks
+Let's return back to the example with reading and writing files. Objects \cit{WrittenFile} and \cit{ReadContentFromFile} are async objects, and they have the same arguments that their corresponding async calls have. So, here the first argument of \cit{WrittenFile} is a path of a file we want to write content to, second one is the content we want to write. And as you noticed, second argument is represented here as \cit{ReadContentFromFile}. It means that method \cit{call()} of \cit{WrittenFile} invoke first \cit{ReadContentFromFile} and use its result as content for \cit{WrittenFile}.
 
-4) method call
+It's good, but it could be better. For making this declarative abstraction flexible we need a possibility to use either ready results or \textit{async objects} that represent these results as arguments for construction the whole composition.
 
-5) fail or success, fail fast and continue after fail
+For example, we can use second argument of \cit{WrittenFile} as a string:
 
+\begin{lstlisting}
+new WrittenFile('./../file2.txt', 'content to write').call();
+\end{lstlisting}
+or use the fist argument as something that has been read from another file:
 
-\section{Events}
+\begin{lstlisting}
+/* here file3.txt contains information 
+  for the first argument of WrittenFile: './../file2.txt' */
+new WrittenFile(
+  new ReadFile('./../file3.txt', 'utf8'), 
+  new ReadFile('./../file1.txt', 'utf8')
+).call();
+\end{lstlisting}
+or even just use every async object independently:
 
-\section{Cache mechanism}
+\begin{lstlisting}
+new ReadFile('./../file.txt', 'utf8').call()
+\end{lstlisting}
+
+That's how we can get rid of callbacks.
+
+\subsection{Events}
+
+There is another abstraction in Node that must be considered. And this is \textit{events}. It's not something that can be implemented via \textbf{Async Object} abstraction.
+
+Let's look at the most popular example in Node:
+
+\begin{lstlisting}
+http.createServer((request, response) => {
+
+  // send back a response every time you get a request
+
+}).listen(8080, '127.0.0.1', () => {
+  'server is listening on 127.0.0.1:8080'
+});
+\end{lstlisting}
+
+Here method \cit{createServer} use \textit{request listener} as argument, which actually works like an \textit{event}: on every \textit{request} it provides a  \textit{response}. Unlike simple \textit{async call}, \textit{event} is never finished and it's being invoked every time when it's needed.
+
+It can be rewritten in the following declarative way:
+
+\begin{lstlisting}
+new LoggedListeningServer(
+  new ListeningServer(
+    new CreatedServer(
+      new RequestResponseEvent()
+    ), 8080, '127.0.0.1'
+  ), 'server is listening on 127.0.0.1:8080'
+).call();
+\end{lstlisting}
+
+As you can see, \cit{RequestResponseEvent} is a node in the \textbf{Async Tree} that represents \textit{request listener}, but it's not a simple argument or \textbf{Async Object}. \cit{RequestResponseEvent} implements \cit{Event} interface and it needs to be treated in a special way, so it requires more flexibility of the whole system.
+
+\subsection{Sequence of async trees}
+
+Sometimes it's not so easy to make a proper composition of \textit{async objects} (or just any kind of objects), mostly because sometimes we need to do completely different things at different moments. And if you try to combine these things in one \textit{async tree}, you'll probably fail. So it would be very useful to be able call one \textit{async tree} after another one. For example,
+
+\begin{lstlisting}
+new EqualAssertion(
+  new ReadContentFromFile(
+    new WrittenFile('./text.txt', 'content')
+  ), 'content'
+).after(
+  RemovedFile('./text.txt')
+).call();
+\end{lstlisting}
+
+It's a test that checks that read content from a file is equal to the content that has been written to the file. After test file can be removed to free space on a disk.
+
+Method \cit{after} can be used only once for every async tree:
+
+\begin{lstlisting}
+// RIGHT WAY, pseudocode
+AsyncTree1().after(
+  AsyncTree2().after(
+    AsyncTree3().after(...)
+  )
+)
+
+// WRONG WAY, pseudocode
+AsyncTree1().after(
+  AsyncTree2()
+).after(
+  AsyncTree3()
+).after(...)
+\end{lstlisting}
+
+\subsection{Cache mechanism}
+
+Consider the following example with  \textit{async tree}:
+
+\begin{lstlisting}
+new SavedNewAccountOfUser(
+  new RetrievedUser(userId),
+  new RetrievedOldAccountOfUser(
+    new RetrievedUser(userId)
+  )
+).call();
+\end{lstlisting}
+
+So, here we try to save new account for user that based(somehow) on its old one. And as you can see, we \textit{retrieve user} here twice. \cit{RetrievedUser} can be a quite expensive operation, so we don't want to do it more than one time. So, what would do you do here?
+
+Well, you definitely don't want to do something like this:
+
+\begin{lstlisting}
+const retrievedUser = new RetrievedUser(userId);
+new SavedNewAccountOfUser(
+  retrievedUser,
+  new RetrievedOldAccountOfUser(
+    retrievedUser
+  )
+).call();
+\end{lstlisting}
+
+Because it does not change anything. All these objects are asynchronous, they are not simple procedures, and all them will be invoked only when they are needed in the \textit{async tree}. It means that the results they produce could be recieved and used only in the inner scope of the \textit{tree}.
+
+Another thing you must consider here is which of two \cit{RetrievedUser} will be invoked first, so that you can write its result into the cache for using it for the second \cit{RetrievedUser}.
+
+Here \textit{sequence of async trees} can help to create declarative construction for caching:
+
+\begin{lstlisting}
+new RetrievedUser(userId).as('user')
+  .after(
+    new SavedNewAccountOfUser(
+      as('user'),
+      new RetrievedOldAccountOfUser(
+        as('user')
+      )
+    )
+  ).call();
+\end{lstlisting}
+
+Every \textbf{Async Object} can has \cit{as(key)} method, which says to the \textbf{Async Object} that it must save its represented value(result) into the cache with the specified \textit{key}. \cit{as(key)} method is used as independent(separate) function, it returns AsyncObject that represents value from the cache with the specified \textit{key}.
 
 \section{Implementation of the Async Tree}
 
