@@ -55,11 +55,11 @@
 
 \section{Introduction}
 
-\textbf{Async Tree Pattern} is a declarative design pattern, the main purpose of which is to transform procedural code into the object-oriented(declarative) code in the asynchronous environment via \bit{async tree}, which is the core idea of this pattern.
+\textbf{Async Tree Pattern} is a declarative design pattern, the main purpose of which is to transform procedural code into the object-oriented(declarative) code in the asynchronous environment via \textbf{async tree}, which is the core idea of this pattern.
 
 \section{Declarative vs Imperative}
 
-The conception of the \bit{async tree} was created with assumption that declarative programming is much better than imperative style of writing code for big programs and systems. Declarative code is more readable, extensible and maintainable in general.
+The conception of the \textbf{async tree} was created with assumption that declarative programming is much better than imperative style of writing code for big programs and systems. Declarative code is more readable, extensible and maintainable in general.
 
 You may agree or disagree with this statement. It's only opinion of the author of this work.
 
@@ -89,19 +89,25 @@ SavedAccount(
 
 The example is quite small to demonstrate why declarative programming is preferable. Nevertheless, you can see that declarative code always shows the result of program execution and what it requires to get this result. For readability it's more important to be able to see what result you get, not how exactly you get it.
 
-\section{Async tree and async object}
+\section{Composition of async objects}
 
-\bit{Async tree} can be defined as a composition of objects and primitives. Each of objects in this composition that represents some other object or primitive type of data is called \bit{async object}. 
+The last example with the declarative code is actually a composition of \textbf{async objects}.
 
-So, for example, \cit{SavedAccount}, \cit{CreatedAccount} are \textit{async objects} because they represent \cit{Account}, which is simple object. \cit{UserFromDb} is also \textit{async object}, it represents simple object \cit{User}.
+\textbf{Async object} is an object that represents(computes) some other(but similar in terms of logic) object. Also async object can represent primitive type of data.
+
+So, for example, \cit{SavedAccount}, \cit{CreatedAccount} are async objects because they represent \cit{Account}, which is simple object. \cit{UserFromDb} is also an async object, it represents simple object \cit{User}.
+
+Async object also can be defined as a wrapper around some \textit{async call} or \textit{sync call} that computes its representation (why not to use separate abstraction like \bit{Sync object} for \textit{sync calls}? well, it will be described later).
 
 Every \textit{async object} can be constructed by other \textit{async objects} or representations of these \textit{async objects}. For example, \cit{SavedAccount} can be created by \cit{CreatedAccount} or any other \textit{async object} that represents \cit{Account}. Obviously, it can be created by \cit{Account} itself.
+
+So, composition of \textit{async objects} can also contain \textit{simple objects} and \textit{primitives}.
 
 That's the main idea of the \textbf{Async Tree Pattern}: to provide flexible way to create composition of objects via their representations.
 
 \section{Asynchronous environment and \textit{callback hell}}
 
-The implementation of the \textit{async tree} will be described for Node.js. The choice is very simple because Node.js is the most popular and stable asynchronous  event driven runtime and it performs well. But as you will see, \textit{async tree} can be applied not only in the asynchronous environment.
+The implementation of the \textbf{Async Tree Pattern} will be described for Node.js. The choice is very simple because Node.js is the most popular and stable asynchronous  event driven runtime and it performs well.
 
 If you're familiar with Node.js and how it works, you might know about \textit{callback hell} problem. Callbacks is the main feature and problem in Node.js. Although it's a beautiful abstraction, it decreases readability of a program while it grows up.
 
@@ -110,9 +116,9 @@ Actually, \textit{callback hell} is one of the reasons why \textbf{Async Tree Pa
 There are relatively new conceptions in JavaScript like \textit{Promises} and  \textit{async/ await}. But in my opinion, these abstractions are not suitable for object-oriented style. Simply because they don't provide the main feature of OOP: \textbf{encapsulation}. 
 It's not possible to create a composition of objects and write declarative code with these abstractions.
 
-Node.js is a set of modules with static asynchronous methods. And this is main problem - static methods are not actually attached to any objects. They just exists in namespaces such as fs(Node.js module for file system), http, stream, buffer and so on.
+Node.js is a set of modules with static asynchronous methods. And this is main problem - static methods are not actually attached to any objects. They just exists in namespaces such as fs, http, stream, buffer and so on.
 
-Static methods with callbacks don't allow to use results of their execution for other operations in the explicit way. The more asynchronous calls in code, the harder to control flow of data there.
+Static methods with callbacks don't allow to use results of their execution for other operations in the explicit way. The more asynchronous calls in the code, the harder to control flow of data there.
 
 Let's say we want to write content to a file that has been read from another one. And all these operations are asynchronous, of course. 
 So, instead of writing something like this:
@@ -146,7 +152,7 @@ new WrittenFile(
 
 \end{lstlisting}
 
-As you can see, we use \textit{async objects} instead of \textit{async calls} and their representations as results of operations they correspond to. So, \cit{ReadContentFromFile} represents \cit{string} - content from a file, which is result of \textit{async call} \cit{fs.readFile}. And \cit{WrittenFile} represents a file that has been written with some content. Although \cit{fs.WriteFile} does not return anything, we can use \cit{WrittenFile} as file for other operations if it's needed.
+As you can see, we use \textit{async objects} instead of \textit{async calls} and their representations as results of operations they correspond to. So, \cit{ReadContentFromFile} represents \cit{string} - content from a file, which is result of \textit{async call} \cit{fs.readFile}. And \cit{WrittenFile} represents a file that has been written with some content. Although \cit{fs.WriteFile} does not return anything, we can use \cit{WrittenFile} as a file for other operations if it's needed.
 
 \section{Features of the Async Tree Pattern}
 
@@ -154,7 +160,7 @@ As you can see, we use \textit{async objects} instead of \textit{async calls} an
 
 The main question needs to be answered for turning asynchronous code into OOP code is \textit{"What is the main point of doing async call?"}
 
-Well, it's simple: receive a result from an I/O operation or just handle an error in case if something fails. That means that we can represent an I/O call as a result that can be received in the future, and when it's ready it can be used as argument for another \textit{ async call }.
+Well, it's simple: receive a result from an I/O operation or just handle an error in case if something fails. That means that we can represent an I/O call as a result that can be received in the future, and once it's ready it can be used as argument for another \textit{ async call }.
 
 Let's return back to the example with reading and writing files. Objects \cit{WrittenFile} and \cit{ReadContentFromFile} are async objects, and they have the same arguments that their corresponding async calls have. So, here the first argument of \cit{WrittenFile} is a path of a file we want to write content to, second one is the content we want to write. And as you noticed, second argument is represented here as \cit{ReadContentFromFile}. It means that method \cit{call()} of \cit{WrittenFile} invoke first \cit{ReadContentFromFile} and use its result as content for \cit{WrittenFile}.
 
@@ -191,7 +197,7 @@ That's how we can get rid of callbacks.
 
 \subsection{Events}
 
-There is another abstraction in Node that must be considered. And this is \textit{events}. It's not something that can be implemented via \textbf{Async Object} abstraction.
+There is another abstraction in Node that must be considered. And this is \textit{events}. It's not something that can be implemented via \textit{async object} abstraction.
 
 Let's look at the most popular example in Node:
 
@@ -241,7 +247,7 @@ new EqualAssertion(
 
 \end{lstlisting}
 
-It's a test that checks that read content from a file is equal to the content that has been written there. After test the file can be removed to free space on a disk.
+It's a test that checks that read content from a file is equal to the content that has been written into there. After test the file can be removed to free space on a disk.
 
 Method \cit{after} can be used only once for every async tree:
 
@@ -322,7 +328,7 @@ Every \textit{async object} can has \cit{as(key)} method, which says to the \tex
 
 \subsection{How it works}
 
-The solution is quite simple. All we need is just to convert a composition of async objects to "asynchronous tree" and make tree traversal from its leaves to the root.
+The solution is quite simple. First of all, we need to replace \textit{async/sync} calls with \textit{async objects}. The composition of these async objects need to be converted to an "asynchronous tree" for making tree traversal from its leaves to the root.
 
 So, let's say we have following composition of async objects:
 
@@ -351,7 +357,7 @@ where \cit{A1}, \cit{A2}, \cit{A3}, \cit{A4}, \cit{A5} are \textit{async objects
 
 Every node has child nodes as their arguments. So, \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5}, \cit{A5} are leaves of the tree and they are being called first at the same time. When their results are received, their parents will be ready to be invoked (\cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are already ready in that case, so we just add them to the arguments of their parent).
 
-\cit{A1} is root of the tree, so we invoke it last. \cit{A2} never waits for result of \cit{A3} or \cit{A4}, because \cit{A2} just does not need them. But \cit{A3} waits for result of \cit{A4}, and \cit{A1} waits for results of \cit{A2}, \cit{A3}, \cit{A5}.
+\cit{A1} is a root of the tree, so we invoke it last. \cit{A2} never waits for results of \cit{A3} or \cit{A4}, because \cit{A2} just does not need them. But \cit{A3} waits for result of \cit{A4}, and \cit{A1} waits for results of \cit{A2}, \cit{A3} and \cit{A5}.
 
 \newpage
 
@@ -364,7 +370,7 @@ A3
 A1
 \end{lstlisting}
 
-You might ask "What if I need to use the result that is represented by \cit{A1}, how can I do that?". Well, it's very simple: you just wrap it with another \textit{async object} that processes representation of the \cit{A1}.
+You might ask "What if I need to use the result that is represented by the \cit{A1}, how can I do that?". Well, it's very simple: you just wrap it with another \textit{async object} that processes representation of the \cit{A1}.
 
 \subsection{Program implementation}
 
@@ -390,7 +396,7 @@ constructor(...args) {
 }
 
 \end{lstlisting}
-\cit{...args} can be any type, including \cit{AsyncObject}. Every \cit{AsyncObject} encapsulates \cit{tree} that use it as root field. Argument \cit{next} points to the next \textit{async tree} if it set by \cit{after} method, by default it's undefined. Also every \textit{async object} has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \textit{asKey} is used as a key for saving representation(computing result) of the \textit{async object} into the cache if method \cit{as} is invoked.
+\cit{...args} can be any type, including \cit{AsyncObject}. Every \cit{AsyncObject} encapsulates \cit{tree} that use it as a root field. Argument \cit{next} points to the next \textit{async tree} if it set by \cit{after} method(by default it's undefined). Also every \textit{async object} has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \textit{asKey} is used as a key for saving representation(computing result) of the \textit{async object} into the cache if method \cit{as} is invoked.
 
 \vspace*{10px}
 
