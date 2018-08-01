@@ -229,7 +229,7 @@ new LoggedListeningServer(
 
 As you can see, \cit{RequestResponseEvent} is a node of the async tree that represents request listener, but it's not a simple argument or async object. \cit{RequestResponseEvent} implements \cit{Event} interface and it needs to be treated in a special way, so it requires more flexibility of the whole system.
 
-\subsection{Sequence of the async trees}
+\subsection{Sequence of the async compositions}
 
 Sometimes it's not so easy to make a proper composition of async objects(or just any kind of objects), mostly because sometimes we need to do completely different things at different moments. And if you try to combine these things in one async tree, you'll probably fail. So it would be very useful to be able call one async tree after another one. For example,
 
@@ -302,7 +302,7 @@ Because it does not change anything. All these objects are asynchronous, they ar
 
 Another thing you must consider here is which of two \cit{RetrievedUser} will be invoked first, so that you can write its result into the cache for using it for the second \cit{RetrievedUser}.
 
-Here \textit{sequence of the async trees} can help to create declarative construction for caching:
+Here \textit{sequence of the async compositions} can help to create declarative construction for caching:
 
 \begin{lstlisting}
 
@@ -459,7 +459,7 @@ as(key) {
 
 \end{lstlisting}
 
-Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition.
+Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method
 
 Method \cit{after} is used for setting next async tree that is being invoked after the current one and returns this async object. Obviously, this method can be used only for the root async object.
 
@@ -525,5 +525,10 @@ Method \cit{readyToBeInvoked} compares number of ready results that are computed
 
 Method \cit{callNextTreeIfExists} is used for calling next async tree if it exists.
 
+Method \cit{propagateCache} is a recursive method that share the cache object among all async objects in the composition(or in the sequence of the async compositions).
+
+Method \cit{withCache} attaches cache to this async object and returns it.
+
+Mathod \cit{saveValueIntoCacheIfNeeded} save represented value of this async object into the cache, if this object has set \cit{asKey}.
 
 \end{document}
