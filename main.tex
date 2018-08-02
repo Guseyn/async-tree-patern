@@ -618,4 +618,159 @@ callParent(result) {
 
 Method \cit{callParent} save result from this node by the position it has. And if all results are set, parent is being invoked.
 
+\vspace*{10px}
+
+\subsection{AsyncTreeNode}
+
+\cit{AsyncTreeNode} is an implementation of the \cit{TreeNode}. And it has some additional public and private methods.
+
+\subsubsection{Constructor}
+
+\begin{lstlisting}
+constructor(field, parent, position) {
+  super(field, parent, position);
+  this.argResults = [];
+  this.readyResultsNum = 0;
+}
+\end{lstlisting}
+
+The argument \cit{field} of this class can be only \cit{AsyncObject}. Also constructor stores the results that have been retrieved from the child nodes in the \cit{argResults} array. The parameter \cit{readResultsNum} is number of results that are ready to be used for the parent node.
+
+\vspace*{10px}
+
+\subsubsection{Public methods}
+
+\begin{lstlisting}
+call() {
+  let args = this.argResults;
+  try {
+    let asyncCall = this.field.definedAsyncCall();
+    if (this.field.callbackWithError()) {
+      this.invokeAsyncCallWithError(asyncCall, ...args);
+    } else {
+      this.invokeAsyncCallWithoutError(asyncCall, ...args);
+    }
+  } catch(error) {
+    if (error.message !== 'asyncCall or syncCall must be defined') {
+      this.field.onError(error);
+    } else {
+      let syncCall = this.field.definedSyncCall();
+      this.invokeSyncCall(syncCall, ...args);
+    }
+  }
+}
+
+isLeaf() {
+  return this.field.hasNoArgs();
+}
+
+readyToBeInvoked() {
+  return this.field.readyToBeInvoked(this.readyResultsNum);
+}
+
+hasParent() {
+  return this.parent instanceof AsyncTreeNode;
+}
+
+insertArgumentResult(position, result) {
+  this.argResults[position] = result;
+  this.readyResultsNum += 1;
+}
+\end{lstlisting}
+
+Method \cit{call} checks if async call is defined, if yes then it get result from it. If async call is not defined it checks if sync call is defined and use it for retrieving the result it provides. If some error happens in the definition of the async/sync call, it will be handled by the \cit{onError} method of the async object(it just throws the error by default).
+
+Method \cit{isLeaf} checks if this node is a leaf by the number of arguments of this \cit{field}. If this number is zero, it's a leaf.
+
+Method \cit{readyToBeInvoked} checks if all results from the child nodes are ready by the \cit{readyResultsNum}.
+
+Method \cit{hasParent} checks if this node has a parent node. Only \cit{AsyncTreeNode} can has child node.
+
+Method \cit{insertArgumentResult} inserts a result of one of the child nodes to the \cit{argResults} and increments \cit{readyResultsNum}.
+
+\vspace*{10px}
+
+\subsubsection{Private methods}
+
+\begin{lstlisting}
+invokeAsyncCallWithError(asyncCall, ...args) {
+  asyncCall(...args, (error, ...results) => {
+    if (!this.processedError(error, ...results)) {
+      this.processedResult(...results);
+    }
+  });
+}
+
+invokeAsyncCallWithoutError(asyncCall, ...args) {
+  asyncCall(...args, (...results) => {
+    this.processedResult(...results);
+  });
+}
+
+invokeSyncCall(syncCall, ...args) {
+  try {
+    let syncCallResult = syncCall(...args);
+    this.processedResult(syncCallResult);
+  } catch (error) {
+    this.processedError(error);
+  }
+}
+
+processedError(error, ...results) {
+  let isProcessed = false;
+  // It's not possible to get rid of null here :(
+  if (error != null) {
+    if (this.hasParent()) {
+      if (this.field.continueAfterFail()) {
+        let totalResult = this.field.onErrorAndResult(error, ...results);
+        this.field.saveValueIntoCacheIfNeeded(totalResult);
+        super.callParent(totalResult);
+      } else {
+        this.field.onError(error);
+      }
+    } else {
+      if (this.field.continueAfterFail()) {
+        let totalResult = this.field.onErrorAndResult(error, ...results);
+        this.field.saveValueIntoCacheIfNeeded(totalResult);
+        this.field.callNextTreeIfExists();
+      } else {
+        this.field.onError(error);
+      }
+    }
+    isProcessed = true;
+  }
+  return isProcessed;
+}
+
+processedResult(...results) {
+  let totalResult;
+  if (this.hasParent()) {
+    if (this.field.continueAfterFail()) {
+      totalResult = this.field.onErrorAndResult(new NullError(), ...results);
+    } else {
+      totalResult = this.field.onResult(...results);
+    }
+    this.field.saveValueIntoCacheIfNeeded(totalResult);
+    super.callParent(totalResult);
+  } else {
+    if (this.field.continueAfterFail()) {
+      totalResult = this.field.onErrorAndResult(new NullError(), ...results);
+    } else {
+      totalResult = this.field.onResult(...results);
+    }
+    this.field.saveValueIntoCacheIfNeeded(totalResult);
+    this.field.callNextTreeIfExists();
+  }
+  return true;
+}
+\end{lstlisting}
+
+Method \cit{invokeAsyncCallWithError} invokes defined async call of the field, which is an async object with a callback that uses an error argument.
+
+Method \cit{invokeAsyncCallWithoutError} does the same that \cit{invokeAsyncCallWithError} does but it uses a callback without error parameter.
+
+Method \cit{invokeSyncCall} invokes defined sync call of the field, which is an async object(although it defines sync call).
+
+Methods \cit{processedResult} and \cit{processedError} are used for processing and post processing the result or an error from the async/sync call considering the configuration of the field. These methods also decide what to save into the cache if it's needed and invoke next async tree if it exists.
+
 \end{document}
