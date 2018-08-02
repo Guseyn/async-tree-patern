@@ -66,25 +66,21 @@ You may agree or disagree with this statement. It's only opinion of the author o
 Here it will be shown the difference between these two approaches by small example. Let's consider the following imperative code:  
 
 \begin{lstlisting}
-
 // Imperative, pseudocode
 user = getUserFromDb(userId);
 account = user.createNewAccount(accountInfo);
 user.saveAccount(account);
-
 \end{lstlisting}
 
 It can be written in the declarative style:
 
 \begin{lstlisting}
-
 // Declarative, pseudocode
 SavedAccount(
   CreatedAccount(
     UserFromDb(userId), accountInfo
   )
 ).call();
-
 \end{lstlisting}
 
 The example is quite small to demonstrate why declarative programming is preferable. Nevertheless, you can see that declarative code always shows the result of program execution and what it requires to get this result. For readability it's more important to be able to see what result you get, not how exactly you get it.
@@ -124,7 +120,6 @@ Let's say we want to write content to a file that has been read from another one
 So, instead of writing something like this:
 
 \begin{lstlisting}
-
 fs.readFile('./../file1.txt', 'utf8', (err, result) => {
   if (err != null) {
     throw err;
@@ -136,18 +131,15 @@ fs.readFile('./../file1.txt', 'utf8', (err, result) => {
     }
   });
 });
-
 \end{lstlisting}
 
 we can design our code in the following style:
 
 \begin{lstlisting}
-
 new WrittenFile(
   './../file2.txt',
   new ReadContentFromFile('./../file1.txt', 'utf8')
 ).call();
-
 \end{lstlisting}
 
 As you can see, we use async objects instead of async calls and their representations as results of operations they correspond to. So, \cit{ReadContentFromFile} represents \cit{string} - content from a file, which is the result of the async call \cit{fs.readFile}. And \cit{WrittenFile} represents a file that has been written with some content. Although \cit{fs.WriteFile} does not return anything, we can use \cit{WrittenFile} as a file for other operations if it's needed.
@@ -167,28 +159,21 @@ It's good, but it could be better. For making this declarative abstraction flexi
 For example, we can use second argument of \cit{WrittenFile} as a string:
 
 \begin{lstlisting}
-
 new WrittenFile('./../file2.txt', 'content to write').call();
-
 \end{lstlisting}
 or use the fist argument as something that has been read from another file:
-
 \begin{lstlisting}
-
 /* here file3.txt contains information 
   for the first argument of WrittenFile: './../file2.txt' */
 new WrittenFile(
   new ReadContentFromFile('./../file3.txt', 'utf8'), 
   new ReadContentFromFile('./../file1.txt', 'utf8')
 ).call();
-
 \end{lstlisting}
 or even just use every async object independently:
 
 \begin{lstlisting}
-
 new ReadContentFromFile('./../file.txt', 'utf8').call();
-
 \end{lstlisting}
 
 That's how we can get rid of callbacks.
@@ -200,7 +185,6 @@ There is another abstraction in Node that must be considered. And this is \texti
 Let's look at the most popular example in Node:
 
 \begin{lstlisting}
-
 http.createServer((request, response) => {
 
   // send back a response every time you get a request
@@ -208,7 +192,6 @@ http.createServer((request, response) => {
 }).listen(8080, '127.0.0.1', () => {
   'server is listening on 127.0.0.1:8080'
 });
-
 \end{lstlisting}
 
 Here method \cit{createServer} uses \textit{request listener} as argument, which actually works like an event: on every \textit{request} it provides a  \textit{response}. Unlike simple async call, event is never finished and it's being invoked every time when it's needed.
@@ -216,7 +199,6 @@ Here method \cit{createServer} uses \textit{request listener} as argument, which
 It can be rewritten in the following declarative way:
 
 \begin{lstlisting}
-
 new LoggedListeningServer(
   new ListeningServer(
     new CreatedServer(
@@ -224,7 +206,6 @@ new LoggedListeningServer(
     ), 8080, '127.0.0.1'
   ), 'server is listening on 127.0.0.1:8080'
 ).call();
-
 \end{lstlisting}
 
 As you can see, \cit{RequestResponseEvent} is a node of the async tree that represents request listener, but it's not a simple argument or async object. \cit{RequestResponseEvent} implements \cit{Event} interface and it needs to be treated in a special way, so it requires more flexibility of the whole system.
@@ -234,7 +215,6 @@ As you can see, \cit{RequestResponseEvent} is a node of the async tree that repr
 Sometimes it's not so easy to make a proper composition of async objects(or just any kind of objects), mostly because sometimes we need to do completely different things at different moments. And if you try to combine these things in one async tree, you'll probably fail. So it would be very useful to be able call one async tree after another one. For example,
 
 \begin{lstlisting}
-
 new EqualAssertion(
   new ReadContentFromFile(
     new WrittenFile('./text.txt', 'content')
@@ -242,7 +222,6 @@ new EqualAssertion(
 ).after(
   RemovedFile('./text.txt')
 ).call();
-
 \end{lstlisting}
 
 It's a test that checks that read content from a file is equal to the content that has been written into there. After test the file can be removed to free space on a disk.
@@ -250,7 +229,6 @@ It's a test that checks that read content from a file is equal to the content th
 Method \cit{after} can be used only once for every async tree:
 
 \begin{lstlisting}
-
 // RIGHT WAY, pseudocode
 AsyncTree1().after(
   AsyncTree2().after(
@@ -264,7 +242,6 @@ AsyncTree1().after(
 ).after(
   AsyncTree3()
 ).after(...)
-
 \end{lstlisting}
 
 \subsection{Cache mechanism}
@@ -272,14 +249,12 @@ AsyncTree1().after(
 Consider the following example with async tree:
 
 \begin{lstlisting}
-
 new SavedNewAccountOfUser(
   new RetrievedUser(userId),
   new RetrievedOldAccountOfUser(
     new RetrievedUser(userId)
   )
 ).call();
-
 \end{lstlisting}
 
 So, here we try to save new account for user that based(somehow) on its old one. And as you can see, we \textit{retrieve user} here twice. \cit{RetrievedUser} might be a quite expensive operation, so we don't want to do it more than one time. So, what would do you do here?
@@ -287,7 +262,6 @@ So, here we try to save new account for user that based(somehow) on its old one.
 Well, you definitely don't want to do something like this:
 
 \begin{lstlisting}
-
 const retrievedUser = new RetrievedUser(userId);
 new SavedNewAccountOfUser(
   retrievedUser,
@@ -295,7 +269,6 @@ new SavedNewAccountOfUser(
     retrievedUser
   )
 ).call();
-
 \end{lstlisting}
 
 Because it does not change anything. All these objects are asynchronous, they are not simple procedures, and all them will be invoked only when they are needed in the async tree. It means that the results they produce could be received and used only in the inner scope of the tree.
@@ -305,7 +278,6 @@ Another thing you must consider here is which of two \cit{RetrievedUser} will be
 Here \textit{sequence of the async compositions} can help to create declarative construction for caching:
 
 \begin{lstlisting}
-
 new RetrievedUser(userId).as('user')
   .after(
     new SavedNewAccountOfUser(
@@ -315,7 +287,6 @@ new RetrievedUser(userId).as('user')
       )
     )
   ).call();
-  
 \end{lstlisting}
 
 Every async object can has \cit{as(key)} method, which says to the async object that it must save its represented \textit{value(result)} into the cache with the specified \cit{key}. If \cit{as(key)} method is used as independent(separate) function, it returns async object that represents value from the cache with the specified \cit{key}.
@@ -328,9 +299,7 @@ The solution is quite simple. First of all, we need to replace async/sync calls 
 
 So, let's say we have following composition of async objects:
 
-\newpage
 \begin{lstlisting}
-
 //Pseudocode
 A1 (
   A2 (
@@ -343,9 +312,10 @@ A1 (
   ),
   A5()
 )
-
 \end{lstlisting}
-where \cit{A1}, \cit{A2}, \cit{A3}, \cit{A4}, \cit{A5} are async objects and \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are just simple arguments. Then corresponding async tree for this composition would be:
+where \cit{A1}, \cit{A2}, \cit{A3}, \cit{A4}, \cit{A5} are async objects and \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are just simple arguments. 
+
+Then corresponding async tree for this composition would be:
 
 \vspace*{10px}
 \includegraphics[width=11cm, height=8cm]{async-tree.png}
@@ -354,8 +324,6 @@ where \cit{A1}, \cit{A2}, \cit{A3}, \cit{A4}, \cit{A5} are async objects and \ci
 Every node has child nodes as their arguments. So, \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5}, \cit{A5} are \textit{leaves} of the tree and they are being called first at the same time. When their results are received, their parents will be ready to be invoked (\cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are already ready in that case, so we just add them to the arguments of their parent).
 
 \cit{A1} is a root of the tree, so we invoke it last. \cit{A2} never waits for the results of \cit{A3} or \cit{A4}, because \cit{A2} just does not need them. But \cit{A3} waits for the result of \cit{A4}, and \cit{A1} waits for the results of \cit{A2}, \cit{A3} and \cit{A5}.
-
-\newpage
 
 So, the sequence of the calls would look like this:
 
@@ -382,7 +350,6 @@ For implementation Aync Tree Pattern we need following classes(abstractions): \c
 \textbf{Constructor}
 
 \begin{lstlisting}
-
 constructor(...args) {
   this.args = args;
   this.tree = new AsyncTree(this);
@@ -390,7 +357,6 @@ constructor(...args) {
   this.cache = {};
   this.asKey;
 }
-
 \end{lstlisting}
 \cit{...args} can be any type, including \cit{AsyncObject}. Every \cit{AsyncObject} encapsulates \cit{tree} that use it as a root field. Argument \cit{next} points to the next async tree if it set by \cit{after} method(by default it's undefined). Also every async object has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \cit{asKey} is used as a key for saving representation(computing result) of the async object into the cache if method \cit{as} is invoked.
 
@@ -441,7 +407,6 @@ Method \cit{callbackWithError} must return \cit{true} if an error is expected in
 \subsubsection{Methods from public API}
 
 \begin{lstlisting}
-
 call() {
   this.propagateCache(this);
   this.tree.create().call();
@@ -456,10 +421,9 @@ as(key) {
   this.asKey = key;
   return this;
 }
-
 \end{lstlisting}
 
-Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method
+Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method is to create an async tree and invoke it.
 
 Method \cit{after} is used for setting next async tree that is being invoked after the current one and returns this async object. Obviously, this method can be used only for the root async object.
 
@@ -470,7 +434,6 @@ Method \cit{as} is used for setting \cit{key} for caching. It returns the async 
 \subsubsection{Internal methods (not for overriding)}
 
 \begin{lstlisting}
-
 iterateArgs(func) {
   this.args.forEach((arg, index) => {
     let isAsync = arg instanceof AsyncObject;
@@ -514,7 +477,6 @@ saveValueIntoCacheIfNeeded(value) {
   }
   return this;
 }
-
 \end{lstlisting}
 
 Method \cit{iterateArgs} is a proxy method, which avoid using \textit{getters} and \textit{setters} for processing \cit{...args} of the async object.
@@ -530,5 +492,130 @@ Method \cit{propagateCache} is a recursive method that share the cache object am
 Method \cit{withCache} attaches cache to this async object and returns it.
 
 Mathod \cit{saveValueIntoCacheIfNeeded} save represented value of this async object into the cache, if this object has set \cit{asKey}.
+
+\vspace*{10px}
+
+\subsection{AsyncTree}
+
+\cit{AsyncTree} has constructor, public and private methods.
+
+\subsubsection{Constructor}
+
+\begin{lstlisting}
+constructor(rootField) {
+  this.rootField = rootField;
+  this.nodes = [];
+}
+\end{lstlisting}
+
+Constructor has only one argument - \cit{rootField}, which is \cit{AsyncObject} that wraps all other async objects in the composition. Also constructor encapsulates \cit{nodes}, which is array that can contain elements with \cit{AsyncTreeNode} type and \cit{SimpleTreeNode} type.
+
+\vspace*{10px}
+
+\subsubsection{Public methods}
+
+\begin{lstlisting}
+create() {
+  this.createAsyncTreeNode(this.rootField, new NotDefinedAsyncTreeNode(), 0);
+  return this;
+}
+
+call() {
+  let leaves = this.nodes.filter(node => {
+    return node.isLeaf();
+  });
+  leaves.forEach(leaf => {
+    leaf.call();
+  });
+}
+\end{lstlisting}
+
+Method \cit{create} use private recursive method \cit{createAsyncTreeNode} to create a root that creates other nodes later recursively. The method returns created \cit{AsyncTree}.
+
+Method \cit{call} filters \cit{nodes} to call \cit{leaves} of this async tree. Then these leaves will call other nodes as it explained in the section 6.1.
+
+\vspace*{10px}
+
+\subsubsection{Private methods}
+
+\begin{lstlisting}
+createAsyncTreeNode(field, parent, index) {
+  let asyncTreeNode = new AsyncTreeNode(field, parent, index);
+  this.nodes.push(asyncTreeNode);
+  this.createChildNodes(field, asyncTreeNode);
+}
+
+createSimpleTreeNode(field, parent, index) {
+  let treeNode = new SimpleTreeNode(field, parent, index);
+  this.nodes.push(treeNode);
+}
+
+createChildNodes(field, parent) {
+  field.iterateArgs((argAsField, index, isAsync, isEvent) => {
+    if (isAsync) {
+      this.createAsyncTreeNode(argAsField, parent, index);
+    } else if (isEvent) {
+      this.createSimpleTreeNode((...eventArgs) => {
+        argAsField.definedBody(...eventArgs);
+      }, parent, index);
+    } else {
+      this.createSimpleTreeNode(argAsField, parent, index);
+    }
+  });
+}
+\end{lstlisting}
+
+The main point of these private methods to create all \cit{nodes} for this async tree. \cit{nodes} can be two types: \cit{AsyncTreeNode} and \cit{SimpleTreeNode}. \cit{AsyncTreeNode} is used for async objects in the composition that is being converted to the async tree. \cit{SimpleTreeNode} is used for simple objects, primitives and events. Every node encapsulates three arguments: \cit{field} - the element in the async composition that is being wrapped around by this node, \cit{parent} is a node that is parent for this node and \cit{index} that points to the position of this node in the list of child nodes of the parent node. 
+
+\vspace*{10px}
+
+\subsection{TreeNode}
+
+\cit{TreeNode} is an abstract class(or interface) that has constructor, methods that must be implemented in the extended classes(\cit{AsyncTreeNode}, \cit{SimpleTreeNode}) and method, which is not allowed to be overridden.
+
+\subsubsection{Constructor}
+
+\begin{lstlisting}
+constructor(field, parent, position) {
+  this.field = field;
+  this.parent = parent;
+  this.position = position;
+}
+\end{lstlisting}
+
+\cit{Constructor} has three arguments and they have the same meaning that it's been explained for arguments of \cit{AsyncTreeNode} and \cit{SimpleTreeNode}.
+
+\vspace*{10px}
+
+\subsubsection{Methods for implementation}
+
+\begin{lstlisting}
+call(result) {
+  throw new Error('call must be overridden');
+}
+
+isLeaf() {
+  throw new Error('isLeaf must be overridden');
+}
+\end{lstlisting}
+
+Method \cit{call} is used for retrieving result for this node and calling parent node if all needed results are ready.
+
+Method \cit{isLeaf} is used for checking if this node is a leaf in the async tree that contains this node.
+
+\vspace*{10px}
+
+\subsubsection{Internal functionality(not for overriding)}
+
+\begin{lstlisting}
+callParent(result) {
+  this.parent.insertArgumentResult(this.position, result);
+  if (this.parent.readyToBeInvoked()) {
+    this.parent.call();
+  }
+}
+\end{lstlisting}
+
+Method \cit{callParent} save result from this node by the position it has. And if all results are set, parent is being invoked.
 
 \end{document}
