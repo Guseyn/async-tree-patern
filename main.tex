@@ -55,7 +55,7 @@
 
 \section{Introduction}
 
-\textbf{Async Tree Pattern} is a declarative design pattern, the main purpose of which is to transform procedural code into the object-oriented(declarative) code in the asynchronous environment via async tree, which is the core idea of this pattern.
+\textbf{Async Tree Pattern} is a declarative design pattern, the main purpose of which is to transform procedural code into the object-oriented(declarative) code in the asynchronous environment via \textbf{async tree}, which is the core idea of this pattern.
 
 \section{Declarative vs Imperative}
 
@@ -336,12 +336,12 @@ A1
 
 You might ask \textit{"What if I need to use the result that is represented by the \cit{A1}, how can I do that?"}. Well, it's very simple: you just wrap it with another async object that processes representation of the \cit{A1}.
 
-\subsection{Program implementation}
+\section{Program implementation}
 
 For implementation Aync Tree Pattern we need following classes(abstractions): \cit{AsyncObject}, \cit{AsyncTree},
 \cit{TreeNode}, \cit{SimpleTreeNode}, \cit{AsyncTreeNode}, \cit{NotDefinedAsyncTreeNode}, \cit{Event}, \cit{As} and \cit{NullError}.
 
-\subsubsection{AsyncObject}
+\subsection{AsyncObject}
 
 \cit{AsyncObject} has three types of methods: methods that must be(or can be) implemented by classes that extend it, methods that can be used in declarative composition and methods that are not allowed to be overridden(for internal usage). Also \cit{AsyncObject} has constructor.
 
@@ -497,7 +497,7 @@ Mathod \cit{saveValueIntoCacheIfNeeded} save represented value of this async obj
 
 \subsection{AsyncTree}
 
-\cit{AsyncTree} has constructor, public and private methods.
+We need to convert async composition to the \cit{AsyncTree} to be able to use results of the async objects in this composition that are being computed by the corresponding async/sync calls. \cit{AsyncTree} has constructor, public and private methods.
 
 \subsubsection{Constructor}
 
@@ -605,7 +605,7 @@ Method \cit{isLeaf} is used for checking if this node is a leaf in the async tre
 
 \vspace*{10px}
 
-\subsubsection{Internal functionality(not for overriding)}
+\subsubsection{Internal functionality (not for overriding)}
 
 \begin{lstlisting}
 callParent(result) {
@@ -772,5 +772,361 @@ Method \cit{invokeAsyncCallWithoutError} does the same that \cit{invokeAsyncCall
 Method \cit{invokeSyncCall} invokes defined sync call of the field, which is an async object(although it defines sync call).
 
 Methods \cit{processedResult} and \cit{processedError} are used for processing and post processing the result or an error from the async/sync call considering the configuration of the field. These methods also decide what to save into the cache if it's needed and invoke next async tree if it exists.
+
+\vspace*{10px}
+
+\subsection{SimpleTreeNode}
+
+\cit{SimpleTreeNode} also implements(or extends) \cit{TreeNode}.
+
+\subsubsection{Constructor}
+
+\begin{lstlisting}
+constructor(field, parent, position) {
+  super(field, parent, position);
+}
+\end{lstlisting}
+
+Unlike \cit{AsyncTreeNode}, \cit{SimpleTreeNode} has a \cit{field} that is just simple object or primitive. And as it's been said before, \cit{parent} is always \cit{AsyncTreeNode}.
+
+\vspace*{10px}
+
+\subsubsection{Public methods}
+
+\begin{lstlisting}
+call() {
+  super.callParent(this.field);
+}
+
+isLeaf() {
+  return true;
+}
+\end{lstlisting}
+
+The main point of the method \cit{call} is to call parent node, if it's ready to be invoked.
+
+\cit{SimpleTreeNode} is always a leaf because it cannot be a parent node, so method \cit{isLeaf} always returns \cit{true}.
+
+\vspace*{10px}
+
+\subsection{NotDefinedAsyncTreeNode}
+
+The root of a tree has no parent node and it's not good to use \cit{null} for this declaration. It's better to create an object that indicates that node is not defined.  
+
+\subsection{Event}
+
+\cit{Event} is an interface that provides only one method: \cit{definedBody(...args)} that must be implemented by the extended classes. The main purpose of this interface is to replace functions of events(or listeners). \cit{Event} is not an \cit{AsyncObject}, but it represents function of some event. But you cannot use \cit{AsyncObject} that represents some \cit{Event} instead of the \cit{Event}. In that case you can use \cit{AsyncObject} that represents some function. Actually, you can use a function in the async composition instead of \cit{Event}, but for readability it's better to use \cit{Event}.
+
+\begin{lstlisting}
+definedBody(...args) {
+  throw new Error('Method definedBody must be overridden with arguments of the event/eventListener you call');
+}
+\end{lstlisting}
+
+\subsection{As}
+
+\cit{As} is an \cit{AsyncObject} that represents a result from the cache by the \cit{key}.
+
+\subsubsection{Implementation}
+
+\begin{lstlisting}
+constructor(key) {
+  super(key);
+}
+
+definedSyncCall() {
+  return (key) => {
+    let result = this.cache[key];
+    if (!result) {
+      throw new Error(`There is no value that is cached with key: \${key}`);
+    }
+    return result;
+  }
+}
+\end{lstlisting}
+
+Since \cit{cache} is visible among all async objects and \cit{As} is an \cit{AsyncObject}, we can use it in the definition of the sync call. For more readability it's better to use function \cit{as} that returns \cit{As}:
+
+\begin{lstlisting}
+module.exports = (key) => {
+  return new As(key);
+};
+
+//then in the code where it's required:
+const as = require('./As');
+\end{lstlisting}
+
+\vspace*{10px}
+
+\subsection{NullError}
+
+This class is for avoiding \cit{null} constant in the code for errors. 
+
+\begin{lstlisting}
+class NullError extends Error {
+
+  constructor() {
+    super('It is a null error');
+    this.isNull = true;
+  }
+
+}
+\end{lstlisting}
+
+\section{How to create AsyncObject}
+
+\subsection{For async call}
+
+Let's take async call \cit{read} from the \cit{fs} module in Node. It has following signature:
+
+\begin{lstlisting}
+fs.read(fd, buffer, offset, length, position, (bytesRead, buffer) => {
+  // handle bytesRead and buffer
+});
+\end{lstlisting}
+
+As you can see we have two things to handle in the callback: \cit{bytesRead}, \cit{buffer}. But \cit{AsyncObject} must represent only one object. So you can create an object that contains everything that callback provides: \cit{{bytesRead, buffer}} or you can choose something that's needed for you. Let's say we need only a \cit{buffer} from the callback, so we would name our \cit{AsyncObject} something like \cit{ReadBufferByFD}.
+
+Let's look on how it must be implemented:
+
+\begin{lstlisting}
+
+const AsyncObject = require('./AsyncObject');
+const fs = require('fs');
+
+// Represented result is buffer
+class ReadBufferByFD extends AsyncObject {
+
+  constructor(fd, buffer, offset, length, position) {
+    super(fd, buffer, offset, length, position);
+  }
+
+  definedAsyncCall() {
+    return fs.read;
+  }
+
+  onResult(bytesRead, buffer) {
+    return buffer;
+  }
+
+}
+\end{lstlisting}
+
+First of all, we extends \cit{ReadBufferByFD} from \cit{AsyncObject}. Constructor has the same parameters as corresponding async call has except callback, we don't need to pass it there. Every of these might be or not an \cit{AsyncObject}. 
+
+Then we need to define async call, so it must return \cit{fs.read}. It's also possible to write this definition in the explicit way:
+
+\begin{lstlisting}
+definedAsyncCall() {
+  return (fd, buffer, offset, length, position, callback) => {
+    return fs.read(fd, buffer, offset, length, position, callback);
+  }
+}
+\end{lstlisting}
+
+Unlike in the constructor here parameters \cit{fd}, \cit{buffer}, \cit{offset}, \cit{length}, \cit{position} are definitely ready results(not async objects), so it's possible to use them in the procedural style. Also you need a \cit{callback} parameter here, because it's needed for the async call.
+
+In the method \cit{onResult} (that provides the same that callback of the async call provides) we return \cit{buffer}. So, it means that this async object represents buffer.
+
+\subsection{For sync call}
+
+Let's now consider a sync variation of the \cit{fs.read}. It's a sync method \cit{fs.readSync}. It has similar signature that \cit{fs.read} has: 
+
+\begin{lstlisting}
+fs.readSync(fd, buffer, offset, length, position);
+\end{lstlisting}
+
+This sync call returns \cit{bytesRead} and it changes \cit{buffer} that has been passed there. So, we have following implementation:
+
+\begin{lstlisting}
+// Represented result is buffer
+class ReadBufferByFDSync extends AsyncObject {
+
+  constructor(fd, buffer, offset, length, position) {
+    super(fd, buffer, offset, length, position);
+  }
+
+  definedSyncCall() {
+    return (fd, buffer, offset, length, position) => {
+      fs.readSync(fd, buffer, offset, length, position);
+      return buffer;
+    }
+  }
+
+}
+\end{lstlisting}
+
+Here we must use explicit definition of the sync call in the \cit{definedSyncCall} method, because we need to return buffer. And we don't need to a callback because it's a synchronous operation. Here we don't need to override \cit{onResult} method, because we override here the sync call that returns what we need.
+
+\subsection{Why don't use SyncObject abstraction for the sync calls?}
+
+Two reasons. First of them is technical reason: it's just easier to implement \cit{AsyncObject} that can wrap either sync or async call. 
+
+Second reason is logical: although \cit{AsyncObject} can wrap sync call, it might require parameters that have been retrieved from the asynchronous operations, so it means that this async object actually has asynchronous nature, because it can be invoked only after some async operations.
+
+More over, even if \cit{AsyncObject} wraps sync call it belongs to some \cit{AsyncTree} or async composition.
+
+\section{How to create an Event}
+
+Let's say we have a \cit{ReadStream} and we need to be able attach a 'open' event to it. So, we need to create an async object \cit{ReadStreamWithOpenEvent} that represents \cit{ReadStream} with attached 'open' event.
+
+\begin{lstlisting}
+// Represented result is a ReadStream
+class ReadStreamWithOpenEvent extends AsyncObject {
+
+  /*
+    event is an Event with definedBody(fd)
+  */
+  constructor(readStream, event) {
+    super(readStream, event);
+  }
+
+  definedSyncCall() {
+    return (readStream, event) => {
+      readStream.on('open', event);
+      return readStream;
+    }
+  }
+
+}
+\end{lstlisting}
+
+Actually \cit{readStream} with 'open' event has the following signature:
+
+\begin{lstlisting}
+readStream.on('open', (fd) => {
+    
+    // here we work with fd
+    
+});
+\end{lstlisting}
+
+So, \cit{OpenEvent} would be:
+
+\begin{lstlisting}
+class OpenEvent extends Event {
+
+  constructor() {
+    super();
+  }
+
+  definedBody(fd) {
+    // here we work with fd
+  }
+
+}
+\end{lstlisting}
+
+As you can see \cit{definedBody} use the same arguments as the event of the \cit{readStream}. 
+
+So, in the composition it would look something like this:
+
+\begin{lstlisting}
+new ReadStreamWithOpenEvent(
+  new CreatedSomeHowReadStream(), new OpenEvent()
+).call();
+\end{lstlisting}
+
+\section{Example of using the sequence of async compositions and cache mechanism}
+
+Let's consider following async object:
+
+\begin{lstlisting}
+class MaxNum extends AsyncObject {
+
+  constructor(...args) {
+    super(...args);
+  }
+
+  definedSyncCall() {
+    return (...args) => {
+      return Math.max(...args);
+    }
+  }
+
+}
+\end{lstlisting}
+
+\cit{MaxNum} represent the max of the specified numbers.
+
+And we have async object that wraps \cit{assert.strictEqual} function that asserts that two numbers are equal:
+
+\begin{lstlisting}
+class StrictEqualAssertion extends AsyncObject {
+
+  constructor(actual, expected) {
+    super(actual, expected);
+  }
+
+  definedSyncCall() {
+    return (actual, expected) => {
+      assert.strictEqual(actual, expected);
+      return actual;
+    }
+  }
+
+}
+\end{lstlisting}
+
+So, let's have some fun:
+
+\begin{lstlisting}
+new MaxNum(
+  new MaxNum(1, 2, 4).as('max1'), 5, 
+  new MaxNum(
+   new MaxNum(4, new MaxNum(3, 4, 6)).as('max2'), 7, 8
+  ).as('max3')
+).after(
+  new StrictEqualAssertion(
+    new MaxNum(as('max1'), as('max2'), as('max3')), 8 
+  )
+);
+\end{lstlisting}
+
+It's a silly example but it shows the power of the Async Tree Pattern.
+
+\section{Conclusion}
+
+Async Tree Pattern is very useful design pattern if you care about readability and beauty of your code. It allows to describe the whole program as a tree that contains a lot of little independent pieces, each of them is responsible for something little functionality. So, the whole conception satisfies \textit{single responsibility principle}. Async tree allows to hide the details of how a program works under the cute declarative composition, which is easy to read and maintain.
+
+In this work it's been shown and described how to implement and use Async Tree Pattern. Actually, you don't need to implement this pattern by yourself, it's available in the \textbf{Cutie} library(link on this library is in the \textbf{References} section). 
+
+\section{References}
+
+\begin{thebibliography}{9}
+
+\bibitem{yegor256-cdium} 
+Yegor Bugayenko: Composable Decorators vs. Imperative Utility Methods,
+\\\texttt{https://www.yegor256.com/2015/02/26/composable-decorators.html}
+
+\bibitem{yegor256-w} 
+Yegor Bugayenko: What's Wrong With Object-Oriented Programming?,
+\\\texttt{https://www.yegor256.com/2016/08/15/what-is-wrong-object-oriented-programming.html}
+
+\bibitem{yegor256-wn} 
+Yegor Bugayenko: Why NULL is Bad?,
+\\\texttt{https://www.yegor256.com/2014/05/13/why-null-is-bad.html}
+
+\bibitem{guseyn-r} 
+Guseyn Ismayylov: Cutie library: reconsidering the concept of the async objects,
+\\\texttt{http://guseyn.com/post-reconsidering-async-object-with-cutie}
+
+\bibitem{guseyn-d} 
+Guseyn Ismayylov: Declarative events,
+\\\texttt{http://guseyn.com/post-event-new-abstraction-in-cutie}
+
+\bibitem{guseyn-s} 
+Guseyn Ismayylov: Sequence of async trees (improved cache mechanism),
+\\\texttt{http://guseyn.com/post-after-conception}
+
+\bibitem{guseyn} 
+Cutie library,
+\\\texttt{https://github.com/Guseyn/cutie}
+
+\end{thebibliography}
+
+\newpage
+
+\tableofcontents
 
 \end{document}
