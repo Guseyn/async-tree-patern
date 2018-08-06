@@ -6,10 +6,11 @@
 \usepackage{graphicx}
 \graphicspath{ {./img/} }
 \definecolor{lightgray}{rgb}{.9,.9,.9}
+\definecolor{superlightgray}{rgb}{0.97,0.97,0.97}
 \definecolor{darkgray}{rgb}{.4,.4,.4}
 \definecolor{superdarkgray}{rgb}{.2,.2,.2}
 \definecolor{purple}{rgb}{0.65, 0.12, 0.82}
-\newcommand{\cit}[1]{{\fontfamily{qcr}\selectfont{\textcolor{superdarkgray}{#1}}}}
+\newcommand{\cit}[1]{{\fontfamily{qcr}\selectfont{\textcolor{purple}{\colorbox{superlightgray}{#1}}}}}
 \newcommand{\bit}[1]{\textit{\textbf{#1}}}
 
 % Taken from Lena Herrmann at 
@@ -1098,6 +1099,10 @@ In this work it's been shown and described how to implement and use Async Tree P
 \bibitem{yegor256-cdium} 
 Yegor Bugayenko: Composable Decorators vs. Imperative Utility Methods,
 \\\texttt{https://www.yegor256.com/2015/02/26/composable-decorators.html}
+
+\bibitem{srp} 
+Single responsibility principle,
+\\\texttt{https://en.wikipedia.org/wiki/Single\_responsibility\_principle}
 
 \bibitem{yegor256-w} 
 Yegor Bugayenko: What's Wrong With Object-Oriented Programming?,
