@@ -353,13 +353,12 @@ For implementation Aync Tree Pattern we need following classes(abstractions): \c
 \begin{lstlisting}
 constructor(...args) {
   this.args = args;
-  this.tree = new AsyncTree(this);
   this.next;
   this.cache = {};
   this.asKey;
 }
 \end{lstlisting}
-\cit{...args} can be any type, including \cit{AsyncObject}. Every \cit{AsyncObject} encapsulates \cit{tree} that use it as a root field. Argument \cit{next} points to the next async tree if it set by \cit{after} method(by default it's undefined). Also every async object has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \cit{asKey} is used as a key for saving representation(computing result) of the async object into the cache if method \cit{as} is invoked.
+\cit{...args} can be any type, including \cit{AsyncObject}. Argument \cit{next} points to the next async tree if it set by \cit{after} method(by default it's undefined). Also every async object has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \cit{asKey} is used as a key for saving representation(computing result) of the async object into the cache if method \cit{as} is invoked.
 
 \vspace*{10px}
 
@@ -410,7 +409,7 @@ Method \cit{callbackWithError} must return \cit{true} if an error is expected in
 \begin{lstlisting}
 call() {
   this.propagateCache(this);
-  this.tree.create().call();
+  new AsyncTree(this).create().call();
 }
 
 after(asyncObject) {
@@ -424,7 +423,7 @@ as(key) {
 }
 \end{lstlisting}
 
-Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method is to create an async tree and invoke it.
+Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method is to create an async tree with root as this async object and invoke it.
 
 Method \cit{after} is used for setting next async tree that is being invoked after the current one and returns this async object. Obviously, this method can be used only for the root async object.
 
