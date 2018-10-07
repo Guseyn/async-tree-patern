@@ -181,7 +181,7 @@ That's how we can get rid of callbacks.
 
 \subsection{Events}
 
-There is another abstraction in Node that must be considered. And this is \textit{events}. It's not something that can be implemented via async object abstraction.
+There is another abstraction in Node that must be considered. And this is \textit{events}.
 
 Let's look at the most popular example in Node:
 
@@ -209,7 +209,7 @@ new LoggedListeningServer(
 ).call();
 \end{lstlisting}
 
-As you can see, \cit{RequestResponseEvent} is a node of the async tree that represents request listener, but it's not a simple argument or async object. \cit{RequestResponseEvent} implements \cit{Event} interface and it needs to be treated in a special way, so it requires more flexibility of the whole system.
+As you can see, \cit{RequestResponseEvent} is a node of the async tree that represents request listener, but it's not a simple argument or async object. \cit{RequestResponseEvent} implements \cit{Event} interface and it needs to be treated in a special way, so it requires more flexibility of the whole system. But we can create \cit{Event} via \cit{AsyncObject} (it'll described in section 9).
 
 \subsection{Sequence of the async compositions}
 
@@ -353,13 +353,12 @@ For implementation Aync Tree Pattern we need following classes(abstractions): \c
 \begin{lstlisting}
 constructor(...args) {
   this.args = args;
-  this.tree = new AsyncTree(this);
   this.next;
   this.cache = {};
   this.asKey;
 }
 \end{lstlisting}
-\cit{...args} can be any type, including \cit{AsyncObject}. Every \cit{AsyncObject} encapsulates \cit{tree} that use it as a root field. Argument \cit{next} points to the next async tree if it set by \cit{after} method(by default it's undefined). Also every async object has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \cit{asKey} is used as a key for saving representation(computing result) of the async object into the cache if method \cit{as} is invoked.
+\cit{...args} can be any type, including \cit{AsyncObject}. Argument \cit{next} points to the next async tree if it set by \cit{after} method(by default it's undefined). Also every async object has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \cit{asKey} is used as a key for saving representation(computing result) of the async object into the cache if method \cit{as} is invoked.
 
 \vspace*{10px}
 
@@ -410,7 +409,7 @@ Method \cit{callbackWithError} must return \cit{true} if an error is expected in
 \begin{lstlisting}
 call() {
   this.propagateCache(this);
-  this.tree.create().call();
+  new AsyncTree(this).create().call();
 }
 
 after(asyncObject) {
@@ -424,7 +423,7 @@ as(key) {
 }
 \end{lstlisting}
 
-Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method is to create an async tree and invoke it.
+Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method is to create an async tree with root as this async object and invoke it.
 
 Method \cit{after} is used for setting next async tree that is being invoked after the current one and returns this async object. Obviously, this method can be used only for the root async object.
 
@@ -913,7 +912,7 @@ class ReadBufferByFD extends AsyncObject {
 }
 \end{lstlisting}
 
-First of all, we extends \cit{ReadBufferByFD} from \cit{AsyncObject}. Constructor has the same parameters as corresponding async call has except callback, we don't need to pass it there. Every of these might be or not an \cit{AsyncObject}. 
+First of all, we extends \cit{ReadBufferByFD} from \cit{AsyncObject}. Constructor has the same parameters as corresponding async call has except callback, we don't need to pass it there. Every of these parameters might be or not an \cit{AsyncObject}. 
 
 Then we need to define async call, so it must return \cit{fs.read}. It's also possible to write this definition in the explicit way:
 
@@ -1025,6 +1024,39 @@ So, in the composition it would look something like this:
 \begin{lstlisting}
 new ReadStreamWithOpenEvent(
   new CreatedSomeHowReadStream(), new OpenEvent()
+).call();
+\end{lstlisting}
+
+The main problem of \cit{Event} is that it cannot encapsulate async objects, because it's being replaced by corresponding function(which is actually \\ \cit{definedBody}) in a moment of construction of the async tree that contains this event. So, if you want use an event that can be constructed by async objects you can simply create \cit{AsyncObject} that represents a function that is the \cit{definedBody} of the event:
+
+\begin{lstlisting}
+class OpenEvent extends AsyncObject {
+
+  constructor(...asyncObjects) {
+    super(...asyncObjects);
+  }
+
+  definedSyncObject() {
+    return (...resultsFromAsyncObjects) => {
+        // This is definedBody of the event
+        return (fd) => {
+            /* now you can use here not only fd but also
+                ...resultsFromAsyncObjects */
+        }
+    }
+  }
+
+}
+\end{lstlisting}
+
+And now the composition of objects would look something like this:
+
+\begin{lstlisting}
+new ReadStreamWithOpenEvent(
+  new CreatedSomeHowReadStream(),
+  new OpenEvent(
+    new SomeAsyncParameter()
+  )
 ).call();
 \end{lstlisting}
 
