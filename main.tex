@@ -292,14 +292,12 @@ So, let's say we have following composition of async objects:
         A5()
     )
 \end{minted}
-where \cit{A1}, \cit{A2}, \cit{A3}, \cit{A4}, \cit{A5} are async objects and \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are just simple arguments. 
-
-Then corresponding async tree for this composition would be:
+where \cit{A1}, \cit{A2}, \cit{A3}, \cit{A4}, \cit{A5} are async objects and \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are just simple arguments. Then corresponding async tree for this composition would be:
 
 \vspace*{10px}
 \includegraphics[width=11cm, height=8cm]{async-tree.png}
-\vspace*{10px}
 
+\newpage
 Every node has child nodes as their arguments. So, \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5}, \cit{A5} are \textit{leaves} of the tree and they are being called first at the same time. When their results are received, their parents will be ready to be invoked (\cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are already ready in that case, so we just add them to the arguments of their parent).
 
 \cit{A1} is a root of the tree, so we invoke it last. \cit{A2} never waits for the results of \cit{A3} or \cit{A4}, because \cit{A2} just does not need them. But \cit{A3} waits for the result of \cit{A4}, and \cit{A1} waits for the results of \cit{A2}, \cit{A3} and \cit{A5}.
