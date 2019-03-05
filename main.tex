@@ -1,56 +1,21 @@
+
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{indentfirst}
+\usepackage[english]{babel}
 \usepackage{listings}
-\usepackage{color}
+\usepackage{minted}
+\usemintedstyle{borland}
 \usepackage{graphicx}
 \graphicspath{ {./img/} }
-\definecolor{lightgray}{rgb}{.9,.9,.9}
-\definecolor{superlightgray}{rgb}{0.97,0.97,0.97}
-\definecolor{darkgray}{rgb}{.4,.4,.4}
-\definecolor{superdarkgray}{rgb}{.2,.2,.2}
-\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
-\newcommand{\cit}[1]{{\fontfamily{qcr}\selectfont{\textcolor{purple}{\colorbox{superlightgray}{#1}}}}}
-\newcommand{\bit}[1]{\textit{\textbf{#1}}}
-
-% Taken from Lena Herrmann at 
-% http://lenaherrmann.net/2010/05/20/javascript-syntax-highlighting-in-the-latex-listings-package
-\lstdefinelanguage{JavaScript}{
-  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
-  keywordstyle=\color{blue}\bfseries,
-  ndkeywords={class, export, boolean, throw, implements, import, this},
-  ndkeywordstyle=\color{darkgray}\bfseries,
-  identifierstyle=\color{black},
-  sensitive=false,
-  comment=[l]{//},
-  morecomment=[s]{/*}{*/},
-  commentstyle=\color{purple}\ttfamily,
-  stringstyle=\color{red}\ttfamily,
-  morestring=[b]',
-  morestring=[b]"
-}
-
-\lstset{
-   language=JavaScript,
-   backgroundcolor=\color{lightgray},
-   extendedchars=true,
-   basicstyle=\footnotesize\ttfamily,
-   showstringspaces=false,
-   showspaces=false,
-   numbers=left,
-   numberstyle=\footnotesize,
-   numbersep=9pt,
-   tabsize=2,
-   breaklines=true,
-   showtabs=false,
-   captionpos=b
-}
 
 \title{Async Tree Pattern}
 \author{Guseyn Ismayylov}
 \date{July 2018}
 
 \begin{document}
+
+\newcommand{\cit}[1]{\mintinline{js}{#1}}
 
 \maketitle
 
@@ -66,23 +31,25 @@ You may agree or disagree with this statement. It's only opinion of the author o
 
 Here it will be shown the difference between these two approaches by small example. Let's consider the following imperative code:  
 
-\begin{lstlisting}
-// Imperative, pseudocode
-user = getUserFromDb(userId);
-account = user.createNewAccount(accountInfo);
-user.saveAccount(account);
-\end{lstlisting}
+
+\begin{minted}{js}
+    // Imperative, pseudocode
+    user = getUserFromDb(userId)
+    account = user.createNewAccount(accountInfo)
+    user.saveAccount(account)
+\end{minted}
 
 It can be written in the declarative style:
 
-\begin{lstlisting}
-// Declarative, pseudocode
-SavedAccount(
-  CreatedAccount(
-    UserFromDb(userId), accountInfo
-  )
-).call();
-\end{lstlisting}
+
+\begin{minted}{js}
+    // Declarative, pseudocode
+    SavedAccount(
+        CreatedAccount(
+            UserFromDb(userId), accountInfo
+        )
+    ).call()
+\end{minted}
 
 The example is quite small to demonstrate why declarative programming is preferable. Nevertheless, you can see that declarative code always shows the result of program execution and what it requires to get this result. For readability it's more important to be able to see what result you get, not how exactly you get it.
 
@@ -120,28 +87,30 @@ Static methods with callbacks don't allow to use results of their execution for 
 Let's say we want to write content to a file that has been read from another one. And all these operations are asynchronous, of course. 
 So, instead of writing something like this:
 
-\begin{lstlisting}
-fs.readFile('./../file1.txt', 'utf8', (err, result) => {
-  if (err != null) {
-    throw err;
-  }
+
+\begin{minted}{js}
+    fs.readFile('./../file1.txt', 'utf8', (err, result) => {
+        if (err != null) {
+            throw err
+        }
  
-  fs.writeFile('/../file2.txt', result, (err) => {
-    if (err != null) {
-      throw err;
-    }
-  });
-});
-\end{lstlisting}
+        fs.writeFile('/../file2.txt', result, (err) => {
+            if (err != null) {
+                throw err
+            }
+        })
+    })
+\end{minted}
 
 we can design our code in the following style:
 
-\begin{lstlisting}
-new WrittenFile(
-  './../file2.txt',
-  new ReadContentFromFile('./../file1.txt', 'utf8')
-).call();
-\end{lstlisting}
+
+\begin{minted}{js}
+    new WrittenFile(
+        './../file2.txt',
+        new ReadContentFromFile('./../file1.txt', 'utf8')
+    ).call()
+\end{minted}
 
 As you can see, we use async objects instead of async calls and their representations as results of operations they correspond to. So, \cit{ReadContentFromFile} represents \cit{string} - content from a file, which is the result of the async call \cit{fs.readFile}. And \cit{WrittenFile} represents a file that has been written with some content. Although \cit{fs.WriteFile} does not return anything, we can use \cit{WrittenFile} as a file for other operations if it's needed.
 
@@ -159,23 +128,25 @@ It's good, but it could be better. For making this declarative abstraction flexi
 
 For example, we can use second argument of \cit{WrittenFile} as a string:
 
-\begin{lstlisting}
-new WrittenFile('./../file2.txt', 'content to write').call();
-\end{lstlisting}
+
+\begin{minted}{js}
+    new WrittenFile('./../file2.txt', 'content to write').call()
+\end{minted}
 or use the fist argument as something that has been read from another file:
-\begin{lstlisting}
-/* here file3.txt contains information 
-  for the first argument of WrittenFile: './../file2.txt' */
-new WrittenFile(
-  new ReadContentFromFile('./../file3.txt', 'utf8'), 
-  new ReadContentFromFile('./../file1.txt', 'utf8')
-).call();
-\end{lstlisting}
+\begin{minted}{js}
+    /* here file3.txt contains information 
+        for the first argument of WrittenFile: './../file2.txt' */
+    new WrittenFile(
+        new ReadContentFromFile('./../file3.txt', 'utf8'), 
+        new ReadContentFromFile('./../file1.txt', 'utf8')
+    ).call()
+\end{minted}
 or even just use every async object independently:
 
-\begin{lstlisting}
-new ReadContentFromFile('./../file.txt', 'utf8').call();
-\end{lstlisting}
+
+\begin{minted}{js}
+    new ReadContentFromFile('./../file.txt', 'utf8').call()
+\end{minted}
 
 That's how we can get rid of callbacks.
 
@@ -185,29 +156,27 @@ There is another abstraction in Node that must be considered. And this is \texti
 
 Let's look at the most popular example in Node:
 
-\begin{lstlisting}
-http.createServer((request, response) => {
-
-  // send back a response every time you get a request
-
-}).listen(8080, '127.0.0.1', () => {
-  'server is listening on 127.0.0.1:8080'
-});
-\end{lstlisting}
+\begin{minted}{js}
+    http.createServer((request, response) => {
+        // send back a response every time you get a request
+    }).listen(8080, '127.0.0.1', () => {
+        'server is listening on 127.0.0.1:8080'
+    })
+\end{minted}
 
 Here method \cit{createServer} uses \textit{request listener} as argument, which actually works like an event: on every \textit{request} it provides a  \textit{response}. Unlike simple async call, event is never finished and it's being invoked every time when it's needed.
 
 It can be rewritten in the following declarative way:
 
-\begin{lstlisting}
-new LoggedListeningServer(
-  new ListeningServer(
-    new CreatedServer(
-      new RequestResponseEvent()
-    ), 8080, '127.0.0.1'
-  ), 'server is listening on 127.0.0.1:8080'
-).call();
-\end{lstlisting}
+\begin{minted}{js}
+    new LoggedListeningServer(
+        new ListeningServer(
+            new CreatedServer(
+                new RequestResponseEvent()
+            ), 8080, '127.0.0.1'
+        ), 'server is listening on 127.0.0.1:8080'
+    ).call()
+\end{minted}
 
 As you can see, \cit{RequestResponseEvent} is a node of the async tree that represents request listener, but it's not a simple argument or async object. \cit{RequestResponseEvent} implements \cit{Event} interface and it needs to be treated in a special way, so it requires more flexibility of the whole system. But we can create \cit{Event} via \cit{AsyncObject} (it'll described in section 9).
 
@@ -215,62 +184,63 @@ As you can see, \cit{RequestResponseEvent} is a node of the async tree that repr
 
 Sometimes it's not so easy to make a proper composition of async objects(or just any kind of objects), mostly because sometimes we need to do completely different things at different moments. And if you try to combine these things in one async tree, you'll probably fail. So it would be very useful to be able call one async tree after another one. For example,
 
-\begin{lstlisting}
-new EqualAssertion(
-  new ReadContentFromFile(
-    new WrittenFile('./text.txt', 'content')
-  ), 'content'
-).after(
-  RemovedFile('./text.txt')
-).call();
-\end{lstlisting}
+\begin{minted}{js}
+    new EqualAssertion(
+        new ReadContentFromFile(
+            new WrittenFile('./text.txt', 'content')
+        ), 'content'
+    ).after(
+        RemovedFile('./text.txt')
+    ).call()
+\end{minted}
 
 It's a test that checks that read content from a file is equal to the content that has been written into there. After test the file can be removed to free space on a disk.
 
 Method \cit{after} can be used only once for every async tree:
 
-\begin{lstlisting}
-// RIGHT WAY, pseudocode
-AsyncTree1().after(
-  AsyncTree2().after(
-    AsyncTree3().after(...)
-  )
-)
+\begin{minted}{js}
+    // RIGHT WAY, pseudocode
+    AsyncTree1().after(
+        AsyncTree2().after(
+            AsyncTree3().after(...)
+        )
+    )
 
-// WRONG WAY, pseudocode
-AsyncTree1().after(
-  AsyncTree2()
-).after(
-  AsyncTree3()
-).after(...)
-\end{lstlisting}
+    // WRONG WAY, pseudocode
+    AsyncTree1().after(
+        AsyncTree2()
+    ).after(
+        AsyncTree3()
+    ).after(...)
+\end{minted}
 
 \subsection{Cache mechanism}
 
 Consider the following example with async tree:
+\newline
 
-\begin{lstlisting}
-new SavedNewAccountOfUser(
-  new RetrievedUser(userId),
-  new RetrievedOldAccountOfUser(
-    new RetrievedUser(userId)
-  )
-).call();
-\end{lstlisting}
+\begin{minted}{js}
+    new SavedNewAccountOfUser(
+        new RetrievedUser(userId),
+        new RetrievedOldAccountOfUser(
+            new RetrievedUser(userId)
+        )
+    ).call()
+\end{minted}
 
 So, here we try to save new account for user that based(somehow) on its old one. And as you can see, we \textit{retrieve user} here twice. \cit{RetrievedUser} might be a quite expensive operation, so we don't want to do it more than one time. So, what would do you do here?
 
 Well, you definitely don't want to do something like this:
 
-\begin{lstlisting}
-const retrievedUser = new RetrievedUser(userId);
-new SavedNewAccountOfUser(
-  retrievedUser,
-  new RetrievedOldAccountOfUser(
-    retrievedUser
-  )
-).call();
-\end{lstlisting}
+\begin{minted}{js}
+    const retrievedUser = new RetrievedUser(userId)
+    new SavedNewAccountOfUser(
+        retrievedUser,
+        new RetrievedOldAccountOfUser(
+            retrievedUser
+        )
+    ).call()
+\end{minted}
 
 Because it does not change anything. All these objects are asynchronous, they are not simple procedures, and all them will be invoked only when they are needed in the async tree. It means that the results they produce could be received and used only in the inner scope of the tree.
 
@@ -278,17 +248,17 @@ Another thing you must consider here is which of two \cit{RetrievedUser} will be
 
 Here \textit{sequence of the async compositions} can help to create declarative construction for caching:
 
-\begin{lstlisting}
-new RetrievedUser(userId).as('user')
-  .after(
-    new SavedNewAccountOfUser(
-      as('user'),
-      new RetrievedOldAccountOfUser(
-        as('user')
-      )
-    )
-  ).call();
-\end{lstlisting}
+\begin{minted}{js}
+    new RetrievedUser(userId).as('user')
+    .after(
+        new SavedNewAccountOfUser(
+            as('user'),
+            new RetrievedOldAccountOfUser(
+                as('user')
+            )
+        )
+    ).call()
+\end{minted}
 
 Every async object can has \cit{as(key)} method, which says to the async object that it must save its represented \textit{value(result)} into the cache with the specified \cit{key}. If \cit{as(key)} method is used as independent(separate) function, it returns async object that represents value from the cache with the specified \cit{key}.
 
@@ -300,20 +270,20 @@ The solution is quite simple. First of all, we need to replace async/sync calls 
 
 So, let's say we have following composition of async objects:
 
-\begin{lstlisting}
-//Pseudocode
-A1 (
-  A2 (
-    a1, a2
-  ),
-  A3 (
-    a3, A4(
-      a4, a5
+\begin{minted}{js}
+    //Pseudocode
+    A1 (
+        A2 (
+            a1, a2
+        ),
+        A3 (
+            a3, A4(
+                a4, a5
+            )
+        ),
+        A5()
     )
-  ),
-  A5()
-)
-\end{lstlisting}
+\end{minted}
 where \cit{A1}, \cit{A2}, \cit{A3}, \cit{A4}, \cit{A5} are async objects and \cit{a1}, \cit{a2}, \cit{a3}, \cit{a4}, \cit{a5} are just simple arguments. 
 
 Then corresponding async tree for this composition would be:
@@ -328,19 +298,19 @@ Every node has child nodes as their arguments. So, \cit{a1}, \cit{a2}, \cit{a3},
 
 So, the sequence of the calls would look like this:
 
-\begin{lstlisting}
-a1, a2, a3, a4, a5, A5 // at the same time
-A2, A4 // at the same time
-A3
-A1
-\end{lstlisting}
+\begin{minted}{js}
+    a1, a2, a3, a4, a5, A5 // at the same time
+    A2, A4 // at the same time
+    A3
+    A1
+\end{minted}
 
 You might ask \textit{"What if I need to use the result that is represented by the \cit{A1}, how can I do that?"}. Well, it's very simple: you just wrap it with another async object that processes representation of the \cit{A1}.
 
 \section{Program implementation}
 
 For implementation Aync Tree Pattern we need following classes(abstractions): \cit{AsyncObject}, \cit{AsyncTree},
-\cit{TreeNode}, \cit{SimpleTreeNode}, \cit{AsyncTreeNode}, \cit{NotDefinedAsyncTreeNode}, \cit{Event}, \cit{As} and \cit{NullError}.
+\cit{TreeNode}, \cit{SimpleTreeNode}, \cit{AsyncTreeNode}, \cit{NotDefinedAsyncTreeNode}, \cit{Event}, \cit{As}.
 
 \subsection{AsyncObject}
 
@@ -350,51 +320,66 @@ For implementation Aync Tree Pattern we need following classes(abstractions): \c
 \noindent
 \textbf{Constructor}
 
-\begin{lstlisting}
-constructor(...args) {
-  this.args = args;
-  this.next;
-  this.cache = {};
-  this.asKey;
-}
-\end{lstlisting}
+\begin{minted}{js}
+  /*
+    args: any type (including AsyncObject)
+  */
+  constructor (...args) {
+    this.args = args
+    this.cache = {}
+    this.next = undefined
+    this.asKey = undefined
+  }
+\end{minted}
 \cit{...args} can be any type, including \cit{AsyncObject}. Argument \cit{next} points to the next async tree if it set by \cit{after} method(by default it's undefined). Also every async object has \cit{cache} that is simple map. It's needed because cache must be visible in the global scope. Field \cit{asKey} is used as a key for saving representation(computing result) of the async object into the cache if method \cit{as} is invoked.
 
 \vspace*{10px}
 
 \subsubsection{Methods for implementing}
 
-\begin{lstlisting}
-definedAsyncCall() {
-  throw new Error('asyncCall or syncCall must be defined');
-}
+\begin{minted}{js}
+  asyncCall () {
+    throw new Error('asyncCall or syncCall must be defined')
+  }
 
-definedSyncCall() {
-  throw new Error('asyncCall or syncCall must be defined');
-}
+  syncCall () {
+    throw new Error('asyncCall or syncCall must be defined')
+  }
 
-onError(error) {
-  throw error;
-}
+  onError (error) {
+    throw error
+  }
 
-onResult(result) {
-  return result;
-}
+  onResult (result) {
+    return result
+  }
 
-onErrorAndResult(error, result) {
-  return error || result;
-}
 
-continueAfterFail() {
-  return false;
-}
 
-callbackWithError() {
-  return true;
-}
-\end{lstlisting}
+  /*
+    Works only if this.continueAfterFail returns true
+      (in that case this.onError and this.onResult will be ignored),
+  */
+  onErrorAndResult (error, result) {
+    return error || result
+  }
 
-Either of methods \cit{definedAsyncCall} or \cit{definedSyncCall} must be defined(implemented) in extended classes. If both of them are implemented then only \cit{definedAsyncCall} will be invoked. \cit{definedAsyncCall} is used for async calls, so it must return function of the async call. \cit{definedSyncCall} is used for synchronous processing, so it must return blocking function. The entire logic of using these methods will be shown in the \cit{AsyncTreeNode} class. 
+  /*
+    If it returns true, then this.onError
+        and this.onResult will be ignored.
+    Represented result of this object
+        will be returned by this.onErrorAndResult.
+  */
+  continueAfterFail () {
+    return false
+  }
+
+  callbackWithError () {
+    return true
+  }
+\end{minted}
+
+Either of methods \cit{asyncCall} or \cit{syncCall} must be defined(implemented) in extended classes. If both of them are implemented then only \cit{asyncCall} will be invoked. \cit{asyncCall} is used for async calls, so it must return function of the async call. \cit{syncCall} is used for synchronous processing, so it must return blocking function. The entire logic of using these methods will be shown in the \cit{AsyncTreeNode} class. 
 
 Method \cit{onError} is used as a handler for errors that might happen in the async calls. And \cit{onResult} is used for post processing of the result of async/sync call.
 
@@ -406,22 +391,23 @@ Method \cit{callbackWithError} must return \cit{true} if an error is expected in
 
 \subsubsection{Methods from public API}
 
-\begin{lstlisting}
-call() {
-  this.propagateCache(this);
-  new AsyncTree(this).create().call();
-}
+\begin{minted}{js}
+  call () {
+    this.propagateCache(this)
+    new AsyncTree(this).create().call()
+  }
 
-after(asyncObject) {
-  this.next = asyncObject;
-  return this;
-}
 
-as(key) {
-  this.asKey = key;
-  return this;
-}
-\end{lstlisting}
+  after (asyncObject) {
+    this.next = asyncObject
+    return this
+  }
+
+  as (key) {
+    this.asKey = key
+    return this
+  }
+\end{minted}
 
 Method \cit{call} is being invoked only of async object that is root of async tree. It propagates cache among all fields, so it will be able to access cache in every async object in the composition. The main point of this method is to create an async tree with root as this async object and invoke it.
 
@@ -433,51 +419,76 @@ Method \cit{as} is used for setting \cit{key} for caching. It returns the async 
 
 \subsubsection{Internal methods (not for overriding)}
 
-\begin{lstlisting}
-iterateArgs(func) {
-  this.args.forEach((arg, index) => {
-    let isAsync = arg instanceof AsyncObject;
-    let isEvent = arg instanceof Event;
-    func(arg, index, isAsync, isEvent);
-  });
-}
-
-hasNoArgs() {
-  return this.args.length === 0;
-}
-
-readyToBeInvoked(readyResultsNum) {
-  return this.args.length === readyResultsNum;
-}
-
-callNextTreeIfExists() {
-  if (this.next) {
-    this.propagateCache(this.next);
-    new AsyncTree(this.next).create().call();
+\begin{minted}{js}
+  iterateArgs (func) {
+    this.args.forEach((arg, index) => {
+      func(arg, index, this.isAsyncObject(arg), this.isEvent(arg))
+    })
   }
-}
 
-propagateCache(arg) {
-  if (arg instanceof AsyncObject) {
-    arg.withCache(this.cache);
-    arg.iterateArgs(
-      arg => this.propagateCache(arg)
-    );
+  hasNoArgs () {
+    return this.args.length === 0
   }
-}
 
-withCache(cache) {
-  this.cache = cache;
-  return this;
- }
- 
-saveValueIntoCacheIfNeeded(value) {
-  if (this.asKey) {
-    this.cache[this.asKey] = value;
+  readyToBeInvoked (readyResultsNum) {
+    return this.args.length === readyResultsNum
   }
-  return this;
-}
-\end{lstlisting}
+
+  callNextTreeIfExists () {
+    if (this.next) {
+      this.propagateCache(this.next)
+      new AsyncTree(this.next).create().call()
+    }
+  }
+
+
+
+  propagateCache (arg) {
+    if (this.isAsyncObject(arg)) {
+      arg.withCache(this.cache)
+      arg.iterateArgs(arg => this.propagateCache(arg))
+    }
+  }
+
+  withCache (cache) {
+    this.cache = cache
+    return this
+  }
+
+  saveValueIntoCacheIfNeeded (value) {
+    if (this.asKey) {
+      this.cache[this.asKey] = value
+    }
+    return this
+  }
+
+  isAsyncObject (arg) {
+    return this.classChain(arg).indexOf('AsyncObject') !== -1
+  }
+
+  isEvent (arg) {
+    return this.classChain(arg).indexOf('Event') !== -1
+  }
+
+  classChain (obj, chain) {
+    if (!chain) {
+      chain = []
+    }
+    if (typeof obj === 'function') {
+        if (!obj.name || obj === Object) {
+            return chain
+        }
+        return this.classChain(
+            Object.getPrototypeOf(obj),chain.concat(obj.name)
+        )
+    }
+    if (typeof obj === 'object' && obj !== null) {
+      return this.classChain(obj.constructor, chain)
+    }
+    return chain
+  }
+\end{minted}
+\newpage
 
 Method \cit{iterateArgs} is a proxy method, which avoid using \textit{getters} and \textit{setters} for processing \cit{...args} of the async object.
 
@@ -493,6 +504,8 @@ Method \cit{withCache} attaches cache to this async object and returns it.
 
 Mathod \cit{saveValueIntoCacheIfNeeded} save represented value of this async object into the cache, if this object has set \cit{asKey}.
 
+Methods \cit{isAsyncObject} and \cit{isEvent} check if argument extends \cit{AsyncObject} and \cit{Event} respectively. Both of them use method \cit{classChain}
+
 \vspace*{10px}
 
 \subsection{AsyncTree}
@@ -501,34 +514,37 @@ We need to convert async composition to the \cit{AsyncTree} to be able to use re
 
 \subsubsection{Constructor}
 
-\begin{lstlisting}
-constructor(rootField) {
-  this.rootField = rootField;
-  this.nodes = [];
-}
-\end{lstlisting}
+\begin{minted}{js}
+  /*
+    rootField: AsyncObject
+  */
+  constructor (rootField) {
+    this.rootField = rootField
+    this.nodes = []
+  }
+\end{minted}
 
 Constructor has only one argument - \cit{rootField}, which is \cit{AsyncObject} that wraps all other async objects in the composition. Also constructor encapsulates \cit{nodes}, which is array that can contain elements with \cit{AsyncTreeNode} type and \cit{SimpleTreeNode} type.
 
-\vspace*{10px}
-
 \subsubsection{Public methods}
 
-\begin{lstlisting}
-create() {
-  this.createAsyncTreeNode(this.rootField, new NotDefinedAsyncTreeNode(), 0);
-  return this;
-}
+\begin{minted}{js}
+  create () {
+    this.createAsyncTreeNode(
+        this.rootField, new NotDefinedAsyncTreeNode(), 0
+    )
+    return this
+  }
 
-call() {
-  let leaves = this.nodes.filter(node => {
-    return node.isLeaf();
-  });
-  leaves.forEach(leaf => {
-    leaf.call();
-  });
-}
-\end{lstlisting}
+  call () {
+    let leaves = this.nodes.filter(node => {
+      return node.isLeaf()
+    })
+    leaves.forEach(leaf => {
+      leaf.call()
+    })
+  }
+\end{minted}
 
 Method \cit{create} use private recursive method \cit{createAsyncTreeNode} to create a root that creates other nodes later recursively. The method returns created \cit{AsyncTree}.
 
@@ -538,32 +554,32 @@ Method \cit{call} filters \cit{nodes} to call \cit{leaves} of this async tree. T
 
 \subsubsection{Private methods}
 
-\begin{lstlisting}
-createAsyncTreeNode(field, parent, index) {
-  let asyncTreeNode = new AsyncTreeNode(field, parent, index);
-  this.nodes.push(asyncTreeNode);
-  this.createChildNodes(field, asyncTreeNode);
-}
+\begin{minted}{js}
+  createChildNodes (field, parent) {
+    field.iterateArgs((argAsField, index, isAsyncObject, isEvent) => {
+      if (isAsyncObject) {
+        this.createAsyncTreeNode(argAsField, parent, index)
+      } else if (isEvent) {
+        this.createSimpleTreeNode((...eventArgs) => {
+          argAsField.body(...eventArgs)
+        }, parent, index)
+      } else {
+        this.createSimpleTreeNode(argAsField, parent, index)
+      }
+    })
+  }
 
-createSimpleTreeNode(field, parent, index) {
-  let treeNode = new SimpleTreeNode(field, parent, index);
-  this.nodes.push(treeNode);
-}
+  createAsyncTreeNode (field, parent, index) {
+    let asyncTreeNode = new AsyncTreeNode(field, parent, index)
+    this.nodes.push(asyncTreeNode)
+    this.createChildNodes(field, asyncTreeNode)
+  }
 
-createChildNodes(field, parent) {
-  field.iterateArgs((argAsField, index, isAsync, isEvent) => {
-    if (isAsync) {
-      this.createAsyncTreeNode(argAsField, parent, index);
-    } else if (isEvent) {
-      this.createSimpleTreeNode((...eventArgs) => {
-        argAsField.definedBody(...eventArgs);
-      }, parent, index);
-    } else {
-      this.createSimpleTreeNode(argAsField, parent, index);
-    }
-  });
-}
-\end{lstlisting}
+  createSimpleTreeNode (field, parent, index) {
+    let treeNode = new SimpleTreeNode(field, parent, index)
+    this.nodes.push(treeNode)
+  }
+\end{minted}
 
 The main point of these private methods to create all \cit{nodes} for this async tree. \cit{nodes} can be two types: \cit{AsyncTreeNode} and \cit{SimpleTreeNode}. \cit{AsyncTreeNode} is used for async objects in the composition that is being converted to the async tree. \cit{SimpleTreeNode} is used for simple objects, primitives and events. Every node encapsulates three arguments: \cit{field} - the element in the async composition that is being wrapped around by this node, \cit{parent} is a node that is parent for this node and \cit{index} that points to the position of this node in the list of child nodes of the parent node. 
 
@@ -575,13 +591,18 @@ The main point of these private methods to create all \cit{nodes} for this async
 
 \subsubsection{Constructor}
 
-\begin{lstlisting}
-constructor(field, parent, position) {
-  this.field = field;
-  this.parent = parent;
-  this.position = position;
-}
-\end{lstlisting}
+\begin{minted}{js}
+  /*
+    field: just some value (argument), also can be Event
+    parent: AsyncTreeNode
+    position: int
+  */
+  constructor (field, parent, position) {
+    this.field = field
+    this.parent = parent
+    this.position = position
+  }
+\end{minted}
 
 \cit{Constructor} has three arguments and they have the same meaning that it's been explained for arguments of \cit{AsyncTreeNode} and \cit{SimpleTreeNode}.
 
@@ -589,15 +610,18 @@ constructor(field, parent, position) {
 
 \subsubsection{Methods for implementation}
 
-\begin{lstlisting}
-call(result) {
-  throw new Error('call must be overridden');
-}
+\begin{minted}{js}
+  call (result) {
+    result = result || ''
+    throw new Error(
+        `call must be overridden and insert result ${result} into parent node`
+    )
+  }
 
-isLeaf() {
-  throw new Error('isLeaf must be overridden');
-}
-\end{lstlisting}
+  isLeaf () {
+    throw new Error('isLeaf must be overridden')
+  }
+\end{minted}
 
 Method \cit{call} is used for retrieving result for this node and calling parent node if all needed results are ready.
 
@@ -607,14 +631,14 @@ Method \cit{isLeaf} is used for checking if this node is a leaf in the async tre
 
 \subsubsection{Internal functionality (not for overriding)}
 
-\begin{lstlisting}
-callParent(result) {
-  this.parent.insertArgumentResult(this.position, result);
-  if (this.parent.readyToBeInvoked()) {
-    this.parent.call();
+\begin{minted}{js}
+  callParent (result) {
+    this.parent.insertArgumentResult(this.position, result)
+    if (this.parent.readyToBeInvoked()) {
+      this.parent.call()
+    }
   }
-}
-\end{lstlisting}
+\end{minted}
 
 Method \cit{callParent} save result from this node by the position it has. And if all results are set, parent is being invoked.
 
@@ -626,57 +650,65 @@ Method \cit{callParent} save result from this node by the position it has. And i
 
 \subsubsection{Constructor}
 
-\begin{lstlisting}
-constructor(field, parent, position) {
-  super(field, parent, position);
-  this.argResults = [];
-  this.readyResultsNum = 0;
-}
-\end{lstlisting}
+\begin{minted}{js}
+  /*
+    field: AsyncObject
+    parent: AsyncTreeNode or NotDefinedAsyncTree
+    position: int
+  */
+  constructor (field, parent, position) {
+    super(field, parent, position)
+    this.argResults = []
+    this.readyResultsNum = 0
+  }
+\end{minted}
 
 The argument \cit{field} of this class can be only \cit{AsyncObject}. Also constructor stores the results that have been retrieved from the child nodes in the \cit{argResults} array. The parameter \cit{readResultsNum} is number of results that are ready to be used for the parent node.
 
-\vspace*{10px}
-
+\newpage
 \subsubsection{Public methods}
 
-\begin{lstlisting}
-call() {
-  let args = this.argResults;
-  try {
-    let asyncCall = this.field.definedAsyncCall();
-    if (this.field.callbackWithError()) {
-      this.invokeAsyncCallWithError(asyncCall, ...args);
-    } else {
-      this.invokeAsyncCallWithoutError(asyncCall, ...args);
-    }
-  } catch(error) {
-    if (error.message !== 'asyncCall or syncCall must be defined') {
-      this.field.onError(error);
-    } else {
-      let syncCall = this.field.definedSyncCall();
-      this.invokeSyncCall(syncCall, ...args);
+\begin{minted}{js}
+  call () {
+    let args = this.argResults
+    try {
+      let asyncCall = this.field.asyncCall()
+      if (this.field.callbackWithError()) {
+        this.invokeAsyncCallWithError(asyncCall, ...args)
+      } else {
+        this.invokeAsyncCallWithoutError(asyncCall, ...args)
+      }
+    } catch (error) {
+      if (error.message !== 'asyncCall or syncCall must be defined') {
+        if (this.field.continueAfterFail()) {
+          this.field.onErrorAndResult(error)
+        } else {
+          this.field.onError(error)
+        }
+      } else {
+        let syncCall = this.field.syncCall()
+        this.invokeSyncCall(syncCall, ...args)
+      }
     }
   }
-}
 
-isLeaf() {
-  return this.field.hasNoArgs();
-}
+  isLeaf () {
+    return this.field.hasNoArgs()
+  }
 
-readyToBeInvoked() {
-  return this.field.readyToBeInvoked(this.readyResultsNum);
-}
+  readyToBeInvoked () {
+    return this.field.readyToBeInvoked(this.readyResultsNum)
+  }
 
-hasParent() {
-  return this.parent instanceof AsyncTreeNode;
-}
+  hasParent () {
+    return this.parent instanceof AsyncTreeNode
+  }
 
-insertArgumentResult(position, result) {
-  this.argResults[position] = result;
-  this.readyResultsNum += 1;
-}
-\end{lstlisting}
+  insertArgumentResult (position, result) {
+    this.argResults[position] = result
+    this.readyResultsNum += 1
+  }
+\end{minted}
 
 Method \cit{call} checks if async call is defined, if yes then it get result from it. If async call is not defined it checks if sync call is defined and use it for retrieving the result it provides. If some error happens in the definition of the async/sync call, it will be handled by the \cit{onError} method of the async object(it just throws the error by default).
 
@@ -692,78 +724,70 @@ Method \cit{insertArgumentResult} inserts a result of one of the child nodes to 
 
 \subsubsection{Private methods}
 
-\begin{lstlisting}
-invokeAsyncCallWithError(asyncCall, ...args) {
-  asyncCall(...args, (error, ...results) => {
-    if (!this.processedError(error, ...results)) {
-      this.processedResult(...results);
-    }
-  });
-}
-
-invokeAsyncCallWithoutError(asyncCall, ...args) {
-  asyncCall(...args, (...results) => {
-    this.processedResult(...results);
-  });
-}
-
-invokeSyncCall(syncCall, ...args) {
-  try {
-    let syncCallResult = syncCall(...args);
-    this.processedResult(syncCallResult);
-  } catch (error) {
-    this.processedError(error);
+\begin{minted}{js}
+  invokeAsyncCallWithError (asyncCall, ...args) {
+    asyncCall(...args, (error, ...results) => {
+      if (!this.processedError(error, ...results)) {
+        this.processedResult(...results)
+      }
+    })
   }
-}
 
-processedError(error, ...results) {
-  let isProcessed = false;
-  // It's not possible to get rid of null here :(
-  if (error != null) {
+  invokeAsyncCallWithoutError (asyncCall, ...args) {
+    asyncCall(...args, (...results) => {
+      this.processedResult(...results)
+    })
+  }
+
+  invokeSyncCall (syncCall, ...args) {
+    try {
+      let syncCallResult = syncCall(...args)
+      this.processedResult(syncCallResult)
+    } catch (error) {
+      this.processedError(error)
+    }
+  }
+\end{minted}
+
+\newpage
+
+\begin{minted}{js}
+  processedError (error, ...results) {
+    let isProcessed = false
+    // It's not possible to get rid of null here :(
+    if (error != null) {
+      if (this.field.continueAfterFail()) {
+        let totalResult = this.field.onErrorAndResult(error, ...results)
+        this.field.saveValueIntoCacheIfNeeded(totalResult)
+        if (this.hasParent()) {
+          super.callParent(totalResult)
+        } else {
+          this.field.callNextTreeIfExists()
+        }
+      } else {
+        this.field.onError(error)
+      }
+      isProcessed = true
+    }
+    return isProcessed
+  }
+
+  processedResult (...results) {
+    let totalResult
+    if (this.field.continueAfterFail()) {
+      totalResult = this.field.onErrorAndResult(null, ...results)
+    } else {
+      totalResult = this.field.onResult(...results)
+    }
+    this.field.saveValueIntoCacheIfNeeded(totalResult)
     if (this.hasParent()) {
-      if (this.field.continueAfterFail()) {
-        let totalResult = this.field.onErrorAndResult(error, ...results);
-        this.field.saveValueIntoCacheIfNeeded(totalResult);
-        super.callParent(totalResult);
-      } else {
-        this.field.onError(error);
-      }
+      super.callParent(totalResult)
     } else {
-      if (this.field.continueAfterFail()) {
-        let totalResult = this.field.onErrorAndResult(error, ...results);
-        this.field.saveValueIntoCacheIfNeeded(totalResult);
-        this.field.callNextTreeIfExists();
-      } else {
-        this.field.onError(error);
-      }
+      this.field.callNextTreeIfExists()
     }
-    isProcessed = true;
+    return true
   }
-  return isProcessed;
-}
-
-processedResult(...results) {
-  let totalResult;
-  if (this.hasParent()) {
-    if (this.field.continueAfterFail()) {
-      totalResult = this.field.onErrorAndResult(new NullError(), ...results);
-    } else {
-      totalResult = this.field.onResult(...results);
-    }
-    this.field.saveValueIntoCacheIfNeeded(totalResult);
-    super.callParent(totalResult);
-  } else {
-    if (this.field.continueAfterFail()) {
-      totalResult = this.field.onErrorAndResult(new NullError(), ...results);
-    } else {
-      totalResult = this.field.onResult(...results);
-    }
-    this.field.saveValueIntoCacheIfNeeded(totalResult);
-    this.field.callNextTreeIfExists();
-  }
-  return true;
-}
-\end{lstlisting}
+\end{minted}
 
 Method \cit{invokeAsyncCallWithError} invokes defined async call of the field, which is an async object with a callback that uses an error argument.
 
@@ -781,11 +805,16 @@ Methods \cit{processedResult} and \cit{processedError} are used for processing a
 
 \subsubsection{Constructor}
 
-\begin{lstlisting}
-constructor(field, parent, position) {
-  super(field, parent, position);
-}
-\end{lstlisting}
+\begin{minted}{js}
+  /*
+    field: simple argument (not AsyncObject, can be Event)
+    parent: AsyncTreeNode or NotDefinedAsyncTree
+    position: int
+  */
+  constructor (field, parent, position) {
+    super(field, parent, position)
+  }
+\end{minted}
 
 Unlike \cit{AsyncTreeNode}, \cit{SimpleTreeNode} has a \cit{field} that is just simple object or primitive. And as it's been said before, \cit{parent} is always \cit{AsyncTreeNode}.
 
@@ -793,15 +822,15 @@ Unlike \cit{AsyncTreeNode}, \cit{SimpleTreeNode} has a \cit{field} that is just 
 
 \subsubsection{Public methods}
 
-\begin{lstlisting}
-call() {
-  super.callParent(this.field);
-}
+\begin{minted}{js}
+  call () {
+    super.callParent(this.field)
+  }
 
-isLeaf() {
-  return true;
-}
-\end{lstlisting}
+  isLeaf () {
+    return true
+  }
+\end{minted}
 
 The main point of the method \cit{call} is to call parent node, if it's ready to be invoked.
 
@@ -815,13 +844,15 @@ The root of a tree has no parent node and it's not good to use \cit{null} for th
 
 \subsection{Event}
 
-\cit{Event} is an interface that provides only one method: \cit{definedBody(...args)} that must be implemented by the extended classes. The main purpose of this interface is to replace functions of events(or listeners). \cit{Event} is not an \cit{AsyncObject}, but it represents function of some event. But you cannot use \cit{AsyncObject} that represents some \cit{Event} instead of the \cit{Event}. In that case you can use \cit{AsyncObject} that represents some function. Actually, you can use a function in the async composition instead of \cit{Event}, but for readability it's better to use \cit{Event}.
+\cit{Event} is an interface that provides only one method: \cit{body(...args)} that must be implemented by the extended classes. The main purpose of this interface is to replace functions of events(or listeners). \cit{Event} is not an \cit{AsyncObject}, but it represents function of some event. But you cannot use \cit{AsyncObject} that represents some \cit{Event} instead of the \cit{Event}. In that case you can use \cit{AsyncObject} that represents some function. Actually, you can use a function in the async composition instead of \cit{Event}, but for readability it's better to use \cit{Event}.
 
-\begin{lstlisting}
-definedBody(...args) {
-  throw new Error('Method definedBody must be overridden with arguments of the event/eventListener you call');
-}
-\end{lstlisting}
+\begin{minted}{js}
+    body (...args) {
+        throw new Error(
+            'Method body must be overridden'
+        )
+    }
+\end{minted}
 
 \subsection{As}
 
@@ -829,49 +860,33 @@ definedBody(...args) {
 
 \subsubsection{Implementation}
 
-\begin{lstlisting}
-constructor(key) {
-  super(key);
-}
-
-definedSyncCall() {
-  return (key) => {
-    let result = this.cache[key];
-    if (!result) {
-      throw new Error(`There is no value that is cached with key: \${key}`);
-    }
-    return result;
+\begin{minted}{js}
+  constructor (key) {
+    super(key)
   }
-}
-\end{lstlisting}
+  
+  syncCall () {
+    return (key) => {
+      let result = this.cache[key]
+      if (result === undefined) {
+        throw new Error(
+            `There is no value that is cached with key: ${key}`
+        )
+      }
+      return result
+    }
+  }
+\end{minted}
 
 Since \cit{cache} is visible among all async objects and \cit{As} is an \cit{AsyncObject}, we can use it in the definition of the sync call. For more readability it's better to use function \cit{as} that returns \cit{As}:
 
-\begin{lstlisting}
-module.exports = (key) => {
-  return new As(key);
-};
-
-//then in the code where it's required:
-const as = require('./As');
-\end{lstlisting}
+\begin{minted}{js}
+    module.exports = (key) => {
+        return new As(key)
+    }
+\end{minted}
 
 \vspace*{10px}
-
-\subsection{NullError}
-
-This class is for avoiding \cit{null} constant in the code for errors. 
-
-\begin{lstlisting}
-class NullError extends Error {
-
-  constructor() {
-    super('It is a null error');
-    this.isNull = true;
-  }
-
-}
-\end{lstlisting}
 
 \section{How to create AsyncObject}
 
@@ -879,88 +894,89 @@ class NullError extends Error {
 
 Let's take async call \cit{read} from the \cit{fs} module in Node. It has following signature:
 
-\begin{lstlisting}
-fs.read(fd, buffer, offset, length, position, (bytesRead, buffer) => {
-  // handle bytesRead and buffer
-});
-\end{lstlisting}
+\begin{minted}{js}
+    fs.read(fd, buffer, offset, length, position,
+        (bytesRead, buffer) => {
+            // handle bytesRead and buffer
+        }
+    )
+\end{minted}
 
 As you can see we have two things to handle in the callback: \cit{bytesRead}, \cit{buffer}. But \cit{AsyncObject} must represent only one object. So you can create an object that contains everything that callback provides: \cit{{bytesRead, buffer}} or you can choose something that's needed for you. Let's say we need only a \cit{buffer} from the callback, so we would name our \cit{AsyncObject} something like \cit{ReadBufferByFD}.
 
 Let's look on how it must be implemented:
 
-\begin{lstlisting}
+\begin{minted}{js}
 
-const AsyncObject = require('./AsyncObject');
-const fs = require('fs');
+    const AsyncObject = require('./AsyncObject')
+    const fs = require('fs')
 
-// Represented result is buffer
-class ReadBufferByFD extends AsyncObject {
+    // Represented result is buffer
+    class ReadBufferByFD extends AsyncObject {
+        constructor (fd, buffer, offset, length, position) {
+            super(fd, buffer, offset, length, position)
+        }
 
-  constructor(fd, buffer, offset, length, position) {
-    super(fd, buffer, offset, length, position);
-  }
+        asyncCall () {
+            return fs.read
+        }
 
-  definedAsyncCall() {
-    return fs.read;
-  }
-
-  onResult(bytesRead, buffer) {
-    return buffer;
-  }
-
-}
-\end{lstlisting}
+        onResult (bytesRead, buffer) {
+            return buffer
+        }
+    }
+\end{minted}
 
 First of all, we extends \cit{ReadBufferByFD} from \cit{AsyncObject}. Constructor has the same parameters as corresponding async call has except callback, we don't need to pass it there. Every of these parameters might be or not an \cit{AsyncObject}. 
 
 Then we need to define async call, so it must return \cit{fs.read}. It's also possible to write this definition in the explicit way:
 
-\begin{lstlisting}
-definedAsyncCall() {
-  return (fd, buffer, offset, length, position, callback) => {
-    return fs.read(fd, buffer, offset, length, position, callback);
-  }
-}
-\end{lstlisting}
+\newpage
+\begin{minted}{js}
+    asyncCall () {
+        return (fd, buffer, offset, length, position, callback) => {
+            return fs.read(
+                fd, buffer, offset, length, position, callback
+            )
+        }
+    }
+\end{minted}
 
 Unlike in the constructor here parameters \cit{fd}, \cit{buffer}, \cit{offset}, \cit{length}, \cit{position} are definitely ready results(not async objects), so it's possible to use them in the procedural style. Also you need a \cit{callback} parameter here, because it's needed for the async call.
 
-In the method \cit{onResult} (that provides the same that callback of the async call provides) we return \cit{buffer}. So, it means that this async object represents buffer.
+In the method \cit{onResult} (that handles the same result that callback of the async call provides) we return \cit{buffer}. So, it means that this async object represents buffer.
 
 \subsection{For sync call}
 
 Let's now consider a sync variation of the \cit{fs.read}. It's a sync method \cit{fs.readSync}. It has similar signature that \cit{fs.read} has: 
 
-\begin{lstlisting}
-fs.readSync(fd, buffer, offset, length, position);
-\end{lstlisting}
+\begin{minted}{js}
+fs.readSync(fd, buffer, offset, length, position)
+\end{minted}
 
 This sync call returns \cit{bytesRead} and it changes \cit{buffer} that has been passed there. So, we have following implementation:
 
-\begin{lstlisting}
-// Represented result is buffer
-class ReadBufferByFDSync extends AsyncObject {
+\begin{minted}{js}
+    // Represented result is buffer
+    class ReadBufferByFDSync extends AsyncObject {
+        constructor (fd, buffer, offset, length, position) {
+            super(fd, buffer, offset, length, position)
+        }
 
-  constructor(fd, buffer, offset, length, position) {
-    super(fd, buffer, offset, length, position);
-  }
-
-  definedSyncCall() {
-    return (fd, buffer, offset, length, position) => {
-      fs.readSync(fd, buffer, offset, length, position);
-      return buffer;
+        syncCall () {
+            return (fd, buffer, offset, length, position) => {
+                fs.readSync(fd, buffer, offset, length, position)
+                return buffer
+            }
+        }
     }
-  }
+\end{minted}
 
-}
-\end{lstlisting}
-
-Here we must use explicit definition of the sync call in the \cit{definedSyncCall} method, because we need to return buffer. And we don't need to a callback because it's a synchronous operation. Here we don't need to override \cit{onResult} method, because we override here the sync call that returns what we need.
+Here we must use explicit definition of the sync call in the \cit{syncCall} method, because we need to return buffer. And we don't need to a callback because it's a synchronous operation. Here we don't need to override \cit{onResult} method, because we override here the sync call that returns what we need.
 
 \subsection{Why don't use SyncObject abstraction for the sync calls?}
 
-Two reasons. First of them is technical reason: it's just easier to implement \cit{AsyncObject} that can wrap either sync or async call. 
+Two reasons. First of them is technical: it's just easier to implement \cit{AsyncObject} that can wrap either sync or async call. 
 
 Second reason is logical: although \cit{AsyncObject} can wrap sync call, it might require parameters that have been retrieved from the asynchronous operations, so it means that this async object actually has asynchronous nature, because it can be invoked only after some async operations.
 
@@ -970,151 +986,139 @@ More over, even if \cit{AsyncObject} wraps sync call it belongs to some \cit{Asy
 
 Let's say we have a \cit{ReadStream} and we need to be able to attach a 'open' event to it. So, we need to create an async object \cit{ReadStreamWithOpenEvent} that represents \cit{ReadStream} with attached 'open' event.
 
-\begin{lstlisting}
-// Represented result is a ReadStream
-class ReadStreamWithOpenEvent extends AsyncObject {
-
-  /*
-    event is an Event with definedBody(fd)
-  */
-  constructor(readStream, event) {
-    super(readStream, event);
-  }
-
-  definedSyncCall() {
-    return (readStream, event) => {
-      readStream.on('open', event);
-      return readStream;
+\begin{minted}{js}
+    // Represented result is a ReadStream
+    class ReadStreamWithOpenEvent extends AsyncObject {
+    /*
+        event is an Event with body(fd)
+    */
+    constructor( readStream, event) {
+        super(readStream, event)
     }
-  }
 
+    syncCall () {
+        return (readStream, event) => {
+            readStream.on('open', event)
+            return readStream
+        }
+    }
 }
-\end{lstlisting}
+\end{minted}
 
 Actually \cit{readStream} with 'open' event has the following signature:
 
-\begin{lstlisting}
-readStream.on('open', (fd) => {
-    
-    // here we work with fd
-    
-});
-\end{lstlisting}
+\begin{minted}{js}
+    readStream.on('open', (fd) => {
+        // here we work with fd  
+    })
+\end{minted}
 
 So, \cit{OpenEvent} would be:
 
-\begin{lstlisting}
-class OpenEvent extends Event {
+\begin{minted}{js}
+    class OpenEvent extends Event {
+        constructor() {
+            super ()
+        }
 
-  constructor() {
-    super();
-  }
+        body (fd) {
+            // here we work with fd
+        }
+    }
+\end{minted}
 
-  definedBody(fd) {
-    // here we work with fd
-  }
-
-}
-\end{lstlisting}
-
-As you can see \cit{definedBody} use the same arguments as the event of the \cit{readStream}. 
+As you can see \cit{body} use the same arguments as the event of the \cit{readStream}. 
 
 So, in the composition it would look something like this:
 
-\begin{lstlisting}
-new ReadStreamWithOpenEvent(
-  new CreatedSomeHowReadStream(), new OpenEvent()
-).call();
-\end{lstlisting}
+\begin{minted}{js}
+    new ReadStreamWithOpenEvent(
+        new CreatedSomeHowReadStream(), new OpenEvent()
+    ).call()
+\end{minted}
 
-The main problem of \cit{Event} is that it cannot encapsulate async objects, because it's being replaced by corresponding function(which is actually \\ \cit{definedBody}) in a moment of construction of the async tree that contains this event. So, if you want use an event that can be constructed by async objects you can simply create \cit{AsyncObject} that represents a function that is the \cit{definedBody} of the event:
+The main problem of \cit{Event} is that it cannot encapsulate async objects, because it's being replaced by corresponding function(which is actually \\ \cit{body}) in a moment of construction of the async tree that contains this event. So, if you want use an event that can be constructed by async objects you can simply create \cit{AsyncObject} that represents a function that is the \cit{body} of the event:
 
-\begin{lstlisting}
-class OpenEvent extends AsyncObject {
+\begin{minted}{js}
+    class OpenEvent extends AsyncObject {
+        constructor (...asyncObjects) {
+            super(...asyncObjects)
+        }
 
-  constructor(...asyncObjects) {
-    super(...asyncObjects);
-  }
-
-  definedSyncObject() {
-    return (...resultsFromAsyncObjects) => {
-        // This is definedBody of the event
-        return (fd) => {
-            /* now you can use here not only fd but also
-                ...resultsFromAsyncObjects */
+        syncCall () {
+            return (...resultsFromAsyncObjects) => {
+                // This is body of the event
+                return (fd) => {
+                    /* now you can use here not only fd but also
+                        ...resultsFromAsyncObjects */
+                }
+            }
         }
     }
-  }
-
-}
-\end{lstlisting}
+\end{minted}
 
 And now the composition of objects would look something like this:
 
-\begin{lstlisting}
-new ReadStreamWithOpenEvent(
-  new CreatedSomeHowReadStream(),
-  new OpenEvent(
-    new SomeAsyncParameter()
-  )
-).call();
-\end{lstlisting}
+\begin{minted}{js}
+    new ReadStreamWithOpenEvent(
+        new CreatedSomeHowReadStream(),
+        new OpenEvent(
+            new SomeAsyncParameter()
+        )
+    ).call()
+\end{minted}
 
 \section{Example of using the sequence of async compositions and cache mechanism}
 
 Let's consider following async object:
 
-\begin{lstlisting}
-class MaxNum extends AsyncObject {
+\begin{minted}{js}
+    class MaxNum extends AsyncObject {
+        constructor (...args) {
+            super(...args)
+        }
 
-  constructor(...args) {
-    super(...args);
-  }
-
-  definedSyncCall() {
-    return (...args) => {
-      return Math.max(...args);
+        syncCall () {
+            return (...args) => {
+                return Math.max(...args)
+            }
+        }
     }
-  }
-
-}
-\end{lstlisting}
+\end{minted}
 
 \cit{MaxNum} represent the max of the specified numbers.
 
 And we have async object that wraps \cit{assert.strictEqual} function that asserts that two numbers are equal:
 
-\begin{lstlisting}
-class StrictEqualAssertion extends AsyncObject {
+\begin{minted}{js}
+    class StrictEqualAssertion extends AsyncObject {
+        constructor (actual, expected) {
+            super(actual, expected)
+        }
 
-  constructor(actual, expected) {
-    super(actual, expected);
-  }
-
-  definedSyncCall() {
-    return (actual, expected) => {
-      assert.strictEqual(actual, expected);
-      return actual;
+        syncCall () {
+            return (actual, expected) => {
+                assert.strictEqual(actual, expected)
+                return actual
+            }
+        }
     }
-  }
-
-}
-\end{lstlisting}
+\end{minted}
 
 So, let's have some fun:
 
-\begin{lstlisting}
-new MaxNum(
-  new MaxNum(1, 2, 4).as('max1'), 5, 
-  new MaxNum(
-   new MaxNum(4, new MaxNum(3, 4, 6)).as('max2'), 7, 8
-  ).as('max3')
-).after(
-  new StrictEqualAssertion(
-    new MaxNum(as('max1'), as('max2'), as('max3')), 8 
-  )
-);
-\end{lstlisting}
+\begin{minted}{js}
+    new MaxNum(
+        new MaxNum(1, 2, 4).as('max1'), 5, 
+        new MaxNum(
+            new MaxNum(4, new MaxNum(3, 4, 6)).as('max2'), 7, 8
+        ).as('max3')
+    ).after(
+        new StrictEqualAssertion(
+            new MaxNum(as('max1'), as('max2'), as('max3')), 8 
+        )
+    )
+\end{minted}
 
 It's a silly example but it shows the power of the Async Tree Pattern.
 
