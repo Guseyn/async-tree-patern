@@ -29,13 +29,11 @@
 
 \section{Introduction}
 
-\textbf{Async Tree Pattern} is a declarative design pattern, the main purpose of which is to transform procedural code into the object-oriented(declarative) code in the asynchronous environment via \textbf{async tree}, which is the core idea of this pattern.
+\textbf{Async Tree Pattern} is a design pattern, the main purpose of which is to provide a way to write declarative code in the asynchronous environment via \textbf{async tree}, which is the core idea of this pattern.
 
 \section{Declarative vs Imperative}
 
 The conception of the \textit{async tree} was created with assumption that declarative programming is much better than imperative style of writing code for big programs and systems. Declarative code is more readable, extensible and maintainable in general.
-
-You may agree or disagree with this statement. It's only opinion of the author of this work.
 
 Here it will be shown the difference between these two approaches by small example. Let's consider the following imperative code:  
 
@@ -85,12 +83,9 @@ If you're familiar with Node.js and how it works, you might know about \textit{c
 
 Actually, callback hell is one of the reasons why Async Tree Pattern was created.
 
-There are relatively new conceptions in JavaScript like \textit{Promises} and  \textit{async/ await}. But in my opinion, these abstractions are not suitable for object-oriented style. Simply because they don't provide the main feature of OOP: \textbf{encapsulation}. 
-It's not possible to create a composition of objects and write declarative code with these abstractions.
+There are relatively new conceptions in JavaScript like \textit{Promises} and  \textit{async/ await}. But in my opinion, these abstractions are not suitable for composable and declarative code.
 
-Node.js is a set of modules with static asynchronous methods. And this is main problem - static methods are not actually attached to any objects. They just exists in namespaces such as fs, http, stream, buffer and so on.
-
-Static methods with callbacks don't allow to use results of their execution for other operations in the explicit way. The more asynchronous calls in the code, the harder to control flow of data there.
+Node.js is a set of modules with static asynchronous methods which don't provide . And static methods with callbacks don't allow to use results of their execution for other operations in the explicit way. The more asynchronous calls in the code, the harder to control flow of data there.
 
 Let's say we want to write content to a file that has been read from another one. And all these operations are asynchronous, of course. 
 So, instead of writing something like this:
@@ -126,7 +121,7 @@ As you can see, we use async objects instead of async calls and their representa
 
 \subsection{Flexibility}
 
-The main question needs to be answered for turning asynchronous code into the OOP code is \textit{"What is the main point of doing async call?"}
+The main question needs to be answered for turning asynchronous code into the declarative and composable code is \textit{"What is the main point of doing async call?"}
 
 Well, it's simple: receive a result from an I/O operation or just handle an error in case if something fails. That means that we can represent an I/O call as a result that can be received in the future, and once it's ready it can be used as argument for another async call.
 
@@ -1138,37 +1133,17 @@ In this work it's been shown and described how to implement and use Async Tree P
 
 \begin{thebibliography}{9}
 
-\bibitem{yegor256-cdium} 
-Yegor Bugayenko: Composable Decorators vs. Imperative Utility Methods,
-\\\texttt{https://www.yegor256.com/2015/02/26/composable-decorators.html}
-
-\bibitem{srp} 
-Single responsibility principle,
-\\\texttt{https://en.wikipedia.org/wiki/Single\_responsibility\_principle}
-
-\bibitem{yegor256-w} 
-Yegor Bugayenko: What's Wrong With Object-Oriented Programming?,
-\\\texttt{https://www.yegor256.com/2016/08/15/what-is-wrong-object-oriented-programming.html}
-
-\bibitem{yegor256-wn} 
-Yegor Bugayenko: Why NULL is Bad?,
-\\\texttt{https://www.yegor256.com/2014/05/13/why-null-is-bad.html}
-
-\bibitem{guseyn-r} 
-Guseyn Ismayylov: Async Objects instead of Async Calls,
-\\\texttt{https://guseyn.com/posts/async-objects-instead-of-async-calls?v=1.0.76}
-
-\bibitem{guseyn-d} 
-Guseyn Ismayylov: Declarative events,
-\\\texttt{https://guseyn.com/posts/declarative-events?v=1.0.76}
-
-\bibitem{guseyn-s} 
-Guseyn Ismayylov: 'As' Conception In Async Tree,
-\\\texttt{https://guseyn.com/posts/as-conception?v=1.0.76}
-
 \bibitem{guseyn} 
 Cutie library,
 \\\texttt{https://github.com/Guseyn/cutie}
+
+\bibitem{guseyn} 
+Async Objects Instead of Async Calls,
+\\\texttt{https://guseyn.com/posts/async-objects-instead-of-async-calls?v=1.0.204}
+
+\bibitem{guseyn} 
+Why I Don't Use Promises and Async/Await Abstractions in Node,
+\\\texttt{https://guseyn.com/posts/why-i-dont-use-promises-and-async-await?v=1.0.204}
 
 \end{thebibliography}
 
